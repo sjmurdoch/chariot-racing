@@ -1,0 +1,22 @@
+# Game settings.
+#
+# Every setting can be overridden, in increasing order of precedence:
+#   1. this file
+#   2. an environment variable at build time, named CHARIOT_<TABLE>_<KEY>
+#      (for example CHARIOT_RACE_LAPS=3 npm run build)
+#   3. a URL query parameter at runtime, named <table>.<key>
+#      (for example ?race.laps=3)
+
+[race]
+# Number of laps in a race. Historically seven.
+laps = 7
+
+[render]
+# Upper limit on the device pixel ratio, to protect frame rate on phones.
+max_pixel_ratio = 2
+# Multisample antialiasing.
+antialias = true
+
+[debug]
+# Show a frames-per-second counter.
+show_fps = false
