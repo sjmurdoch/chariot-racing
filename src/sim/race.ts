@@ -67,6 +67,14 @@ export function formatTime(seconds: number): string {
   return `${minutes}:${String(secs).padStart(2, '0')}.${tenths % 10}`;
 }
 
+/** Writes a place in English, for example 2 as 2nd. */
+export function ordinal(n: number): string {
+  const tens = n % 100;
+  if (tens >= 11 && tens <= 13) return `${n}th`;
+  const suffix = ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th';
+  return `${n}${suffix}`;
+}
+
 const NUMERALS: [number, string][] = [
   [1000, 'M'],
   [900, 'CM'],

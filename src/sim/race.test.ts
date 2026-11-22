@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { currentLap, finishProgress, formatTime, roman, startRace, stepRace } from './race';
+import { currentLap, finishProgress, formatTime, ordinal, roman, startRace, stepRace } from './race';
 
 describe('stepRace', () => {
   it('counts time and completed laps while racing', () => {
@@ -66,5 +66,19 @@ describe('roman', () => {
   it('falls back to digits for zero and fractions', () => {
     expect(roman(0)).toBe('0');
     expect(roman(2.5)).toBe('2.5');
+  });
+});
+
+describe('ordinal', () => {
+  it.each([
+    [1, '1st'],
+    [2, '2nd'],
+    [3, '3rd'],
+    [4, '4th'],
+    [11, '11th'],
+    [12, '12th'],
+    [21, '21st'],
+  ])('writes %d as %s', (n, text) => {
+    expect(ordinal(n)).toBe(text);
   });
 });

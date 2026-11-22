@@ -11,16 +11,13 @@ import {
 } from './input/steering';
 import { createTiltSteer, type TiltSteer } from './input/tilt';
 import { createStage } from './scene';
-import { interpolateChariot, startChariot, stepChariot, type ChariotState } from './sim/chariot';
+import { buildChariots } from './render/chariots';
+import { interpolateChariot, startChariot, type ChariotState } from './sim/chariot';
 import { createFixedClock } from './sim/clock';
-import {
-  currentLap,
-  formatTime,
-  roman,
-  startRace,
-  stepRace,
-  type RaceState,
-} from './sim/race';
+import { FACTIONS, isFactionId, rivalsFor, type FactionId } from './sim/factions';
+import { createRacer, placeOf, stepField, type Racer } from './sim/field';
+import { currentLap, formatTime, ordinal, roman, type RaceState } from './sim/race';
+import { createBrain } from './sim/rival';
 import {
   displayMode,
   enterFullscreenLandscape,
@@ -47,6 +44,8 @@ declare global {
       state: ChariotState;
       /** Laps, timing and finish; see sim/race.ts. */
       race: RaceState;
+      /** Every chariot, the player first, with its place in the race. */
+      field: { faction: string; progress: number; lane: number; place: number }[];
       input: SteerReading;
       tilt: Pick<TiltSteer, 'status' | 'angle' | 'neutral'>;
       /** Draw calls in the last rendered frame. */
@@ -73,9 +72,43 @@ const keyboard = createKeyboardSteer(window);
 const pointer = createPointerSteer(canvas);
 const tilt = createTiltSteer(tiltParams(config));
 
-// The race starts from a standstill.
-let previous = startChariot(config.debug.start_progress, config.chariot.start_lane);
+let playerFaction: FactionId = 'prasina';
+if (isFactionId(config.race.faction)) {
+  playerFaction = config.race.faction;
+} else {
+  console.warn('Unknown faction "%s" in race.faction; racing for prasina', config.race.faction);
+}
+
+/** A fresh field on the start line, from a standstill: the player first, then the rivals. */
+function newField(): Racer[] {
+  const start = config.debug.start_progress;
+  const rivals = rivalsFor(playerFaction, config.rivals.count, config.rivals.skill);
+  return [
+    createRacer(playerFaction, startChariot(start, config.chariot.start_lane), chariot),
+    ...rivals.map((r) =>
+      createRacer(
+        r.faction,
+        startChariot(start, r.startLane),
+        { ...chariot, cruiseSpeed: chariot.cruiseSpeed * r.personality.skill },
+        createBrain(r.personality),
+      ),
+    ),
+  ];
+}
+
+const fieldSetup = {
+  track: stage.track,
+  laps: config.race.laps,
+  slipstreamBoost: config.rivals.slipstream_boost,
+};
+let previous = newField();
 let current = previous;
+const models = buildChariots(
+  stage.track,
+  current.map((r) => FACTIONS[r.faction as FactionId].hex),
+);
+models.hide(0); // The player's own chariot is behind the camera.
+stage.scene.add(models.group);
 
 const hooks = {
   config,
@@ -83,8 +116,9 @@ const hooks = {
   frames: 0,
   started: false,
   paused: false,
-  state: current,
-  race: startRace(),
+  state: current[0]!.chariot,
+  race: current[0]!.race,
+  field: [] as { faction: string; progress: number; lane: number; place: number }[],
   input: { steer: 0, source: 'none' } as SteerReading,
   tilt,
   drawCalls: 0,
@@ -147,31 +181,36 @@ const crashFlash = document.querySelector<HTMLElement>('#crash-flash')!;
 const hud = document.querySelector<HTMLElement>('#hud')!;
 const hudLap = document.querySelector<HTMLElement>('#hud-lap')!;
 const hudTime = document.querySelector<HTMLElement>('#hud-time')!;
+const hudPlace = document.querySelector<HTMLElement>('#hud-place')!;
 const finish = document.querySelector<HTMLElement>('#finish')!;
 const laps = config.race.laps;
-/** Once finished, the chariot pulls up rather than racing on. */
-const pullingUp = { ...chariot, cruiseSpeed: 0 };
 
 function updateHud(): void {
   const lap = `Lap ${roman(currentLap(hooks.race, laps))} of ${roman(laps)}`;
+  const place = current.length > 1 ? ordinal(placeOf(current, 0)) : '';
   const time = formatTime(hooks.race.elapsed);
   if (hudLap.textContent !== lap) hudLap.textContent = lap;
+  if (hudPlace.textContent !== place) hudPlace.textContent = place;
   if (hudTime.textContent !== time) hudTime.textContent = time;
 }
 
 function showFinish(): void {
-  const crashes = current.crashes;
+  const crashes = current[0]!.chariot.crashes;
+  const place = placeOf(current, 0);
+  const won = place === 1 && current.length > 1;
+  document.querySelector('#finish .title')!.textContent = won ? 'Victor!' : 'Finis';
   document.querySelector('#finish-time')!.textContent = formatTime(hooks.race.finishTime ?? 0);
+  const placing = current.length > 1 ? `${ordinal(place)} of ${current.length} · ` : '';
   document.querySelector('#finish-detail')!.textContent =
-    crashes === 0 ? 'No crashes' : crashes === 1 ? '1 crash' : `${crashes} crashes`;
+    placing + (crashes === 0 ? 'No crashes' : crashes === 1 ? '1 crash' : `${crashes} crashes`);
   hud.hidden = true;
   finish.hidden = false;
 }
 
-/** Puts the chariot back on the start line for another race. */
+/** Puts every chariot back on the start line for another race. */
 function raceAgain(): void {
-  previous = current = startChariot(config.debug.start_progress, config.chariot.start_lane);
-  hooks.race = startRace();
+  previous = current = newField();
+  hooks.race = current[0]!.race;
   shownCrashes = 0;
   finish.hidden = true;
   hud.hidden = false;
@@ -252,16 +291,10 @@ stage.renderer.setAnimationLoop((now) => {
   hooks.input = digital ? { steer: rampedSteer, source: raw.source } : raw;
   if (hooks.started && !hooks.paused) {
     for (let i = 0; i < steps; i++) {
-      const racing = hooks.race.phase === 'racing';
+      const racing = current[0]!.race.phase === 'racing';
       previous = current;
-      current = stepChariot(
-        current,
-        racing ? hooks.input.steer : 0,
-        clock.step,
-        stage.track,
-        racing ? chariot : pullingUp,
-      );
-      hooks.race = stepRace(hooks.race, previous.progress, current.progress, clock.step, laps);
+      current = stepField(current, hooks.input.steer, clock.step, fieldSetup);
+      hooks.race = current[0]!.race;
       if (racing && hooks.race.phase === 'finished') showFinish();
     }
   } else {
@@ -269,12 +302,22 @@ stage.renderer.setAnimationLoop((now) => {
     previous = current;
   }
 
-  if (current.crashes !== shownCrashes) {
-    shownCrashes = current.crashes;
+  const player = current[0]!.chariot;
+  if (player.crashes !== shownCrashes) {
+    shownCrashes = player.crashes;
     showCrash();
   }
 
-  hooks.state = interpolateChariot(previous, current, clock.alpha);
+  hooks.state = interpolateChariot(previous[0]!.chariot, player, clock.alpha);
+  for (let i = 1; i < current.length; i++) {
+    models.place(i, interpolateChariot(previous[i]!.chariot, current[i]!.chariot, clock.alpha));
+  }
+  hooks.field = current.map((r, i) => ({
+    faction: r.faction,
+    progress: r.chariot.progress,
+    lane: r.chariot.lane,
+    place: placeOf(current, i),
+  }));
   if (!hud.hidden) updateHud();
   stage.placeCamera(hooks.state);
   stage.resize();
