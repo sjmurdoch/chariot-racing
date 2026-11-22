@@ -6,6 +6,7 @@ import {
   lapsCompleted,
   poseAt,
   segmentLength,
+  travelDirection,
   type TrackSpec,
 } from './track';
 
@@ -122,6 +123,22 @@ describe('curvature', () => {
   it('is one over the lane radius in the turns', () => {
     expect(curvature(track, 1.5, 6)).toBeCloseTo(1 / 18);
     expect(curvature(track, 7.2, 0)).toBeCloseTo(1 / 12);
+  });
+});
+
+describe('travelDirection', () => {
+  it('follows the track with zero heading', () => {
+    const pose = poseAt(track, 1.25, 5);
+    const d = travelDirection(pose, 0);
+    expect(d.x).toBeCloseTo(pose.forwardX);
+    expect(d.z).toBeCloseTo(pose.forwardZ);
+  });
+
+  it('turns outwards with positive heading', () => {
+    // On the home straight the track runs +X and outwards is +Z.
+    const d = travelDirection(poseAt(track, 0.5, 5), Math.PI / 6);
+    expect(d.x).toBeCloseTo(Math.cos(Math.PI / 6));
+    expect(d.z).toBeCloseTo(0.5);
   });
 });
 

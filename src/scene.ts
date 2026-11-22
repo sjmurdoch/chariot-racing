@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { trackSpec, type GameConfig } from './config';
 import { buildArena } from './render/arena';
 import type { ChariotState } from './sim/chariot';
-import { advance, poseAt, type TrackSpec } from './sim/track';
+import { poseAt, travelDirection, type TrackSpec } from './sim/track';
 
 const SKY = 0x87b5d9;
 const SAND = 0xc8a165;
@@ -45,12 +45,15 @@ export function createStage(canvas: HTMLCanvasElement, config: GameConfig): Stag
   function placeCamera(chariot: ChariotState): void {
     const { progress, lane, heading } = chariot;
     const here = poseAt(track, progress, lane);
-    // Look along the chariot's own heading, not the track's: the point ahead
-    // is shifted across the track by the tangent of the heading.
-    const drift = Math.tan(heading) * lookahead;
-    const ahead = poseAt(track, advance(track, progress, lane, lookahead), lane + drift);
+    // Look exactly where the chariot is heading. (Aiming at a point further
+    // along the curved track would swing the view into a bend on its own.)
+    const direction = travelDirection(here, heading);
     camera.position.set(here.x, eye, here.z);
-    camera.lookAt(ahead.x, eye * 0.75, ahead.z);
+    camera.lookAt(
+      here.x + direction.x * lookahead,
+      eye * 0.75,
+      here.z + direction.z * lookahead,
+    );
   }
 
   function resize(): void {

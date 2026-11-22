@@ -7,14 +7,13 @@ import {
   type ChariotState,
   type SteeringParams,
 } from './chariot';
-import { lapLength, laneRadius, type TrackSpec } from './track';
+import { lapLength, laneRadius, poseAt, travelDirection, type TrackSpec } from './track';
 
 const track: TrackSpec = { straightLength: 150, innerRadius: 8, width: 24, spinaClearance: 2 };
 const steering: SteeringParams = {
   maxTurnRate: Math.PI,
   response: 0.12,
-  straightenTime: 0.6,
-  maxHeading: Math.PI / 3,
+  maxHeading: (80 * Math.PI) / 180,
 };
 const SPEED = 22;
 const DT = 1 / 60;
@@ -55,14 +54,14 @@ describe('on the straight', () => {
     expect(run(startChariot(0, 10, SPEED), -1, 0.5).lane).toBeLessThan(10);
   });
 
-  it('straightens up on its own after steering', () => {
-    const turned = run(startChariot(0, 6, SPEED), 1, 0.25);
-    expect(turned.heading).toBeGreaterThan(0.1);
-    const settled = run(turned, 0, 3);
-    expect(Math.abs(settled.heading)).toBeLessThan(0.01);
-    const later = run(settled, 0, 1);
-    // Only a few centimetres of residual drift once settled.
-    expect(Math.abs(later.lane - settled.lane)).toBeLessThan(0.1);
+  it('keeps its new angle after a swerve until steered back', () => {
+    const turned = run(startChariot(0, 6, SPEED), 0.3, 0.2);
+    // Let the turning rate die away after letting go.
+    const coasting = run(turned, 0, 1.5);
+    expect(coasting.heading).toBeGreaterThan(0.02);
+    const later = run(coasting, 0, 0.2);
+    expect(later.heading).toBeCloseTo(coasting.heading, 4);
+    expect(later.lane).toBeGreaterThan(coasting.lane);
   });
 
   it('never turns further than the largest heading', () => {
@@ -72,6 +71,23 @@ describe('on the straight', () => {
 });
 
 describe('at a turn', () => {
+  it('goes in a straight line across the ground without steering', () => {
+    let s = startChariot(0.95, 6, SPEED);
+    const start = poseAt(track, s.progress, s.lane);
+    const before = travelDirection(start, s.heading);
+    for (let i = 0; i < 60; i++) {
+      s = stepChariot(s, 0, DT, track, steering);
+      const pose = poseAt(track, s.progress, s.lane);
+      const direction = travelDirection(pose, s.heading);
+      expect(direction.x).toBeCloseTo(before.x, 3);
+      expect(direction.z).toBeCloseTo(before.z, 3);
+      // Every position lies on the starting line of travel (z stays put),
+      // to within 10 cm of integration error.
+      expect(Math.abs(pose.z - start.z)).toBeLessThan(0.1);
+    }
+    expect(s.progress).toBeGreaterThan(1);
+  });
+
   it('runs wide to the wall without steering', () => {
     const end = run(startChariot(1, 6, SPEED), 0, 2);
     expect(end.lane).toBe(track.width);

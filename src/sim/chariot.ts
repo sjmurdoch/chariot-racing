@@ -1,13 +1,13 @@
 // The player's chariot. It has a heading of its own: steering turns it, and
-// the track bends underneath it. Without steering, it runs straight on at a
-// bend and drifts wide towards the outer wall, so the player has to steer
-// round every turn.
+// the track bends underneath it. With no steering it travels in a straight
+// line, so at a bend it runs on towards the outer wall unless the player
+// steers round, and after a swerve it keeps its new angle until steered back.
 //
 // The heading is measured relative to the direction of the track at the
 // chariot's position: 0 is straight along the track, positive points
 // outwards (to the driver's right).
 
-import { advance, curvature, type TrackSpec } from './track';
+import { advance, poseAt, type TrackSpec } from './track';
 
 export interface ChariotState {
   /** Track progress; see track.ts. */
@@ -27,12 +27,6 @@ export interface SteeringParams {
   maxTurnRate: number;
   /** Time constant for reaching the steered turning rate, in seconds. */
   response: number;
-  /**
-   * Time constant, in seconds, with which the horses line up with the track
-   * on their own. This makes straights forgiving, but at a bend it only
-   * slows the drift: the player still has to steer round.
-   */
-  straightenTime: number;
   /** Largest heading away from the track direction, in radians. */
   maxHeading: number;
 }
@@ -62,28 +56,44 @@ export function stepChariot(
   const blend = 1 - Math.exp(-dt / steering.response);
   const turnRate = state.turnRate + (clamped * steering.maxTurnRate - state.turnRate) * blend;
 
-  // The track turning left under a chariot that holds its course swings the
-  // relative heading outwards, at the bend's curvature times forward speed.
-  const along = state.speed * Math.cos(state.heading);
-  const bend = curvature(track, state.progress, state.lane) * along;
-  let heading = state.heading + (turnRate + bend) * dt;
-  heading *= Math.exp(-dt / steering.straightenTime);
-  heading = Math.max(-steering.maxHeading, Math.min(steering.maxHeading, heading));
-
-  let lane = state.lane + state.speed * Math.sin(heading) * dt;
-  if (lane <= 0 || lane >= track.width) {
-    // Against the spina or the wall: scrape along it. Crashes come later.
-    lane = Math.max(0, Math.min(track.width, lane));
-    heading = 0;
+  // As the track bends left under the chariot, its heading relative to the
+  // track swings outwards by exactly the angle the track turns. With no
+  // steering, that makes the path a straight line across the ground.
+  //
+  // The step is taken twice (predict, then correct), so the move uses the
+  // heading midway through the step, including half of the track's turn.
+  const steered = turnRate * dt;
+  let bend = 0;
+  let lane = state.lane;
+  let midLane = state.lane;
+  let progress = state.progress;
+  for (let pass = 0; pass < 2; pass++) {
+    const midHeading = state.heading + (steered + bend) / 2;
+    lane = state.lane + state.speed * Math.sin(midHeading) * dt;
+    midLane = (state.lane + lane) / 2;
+    if (lane <= 0 || lane >= track.width) {
+      // Against the spina or the wall: scrape along it. Crashes come later.
+      lane = midLane = Math.max(0, Math.min(track.width, lane));
+    }
+    progress = advance(track, state.progress, midLane, state.speed * Math.cos(midHeading) * dt);
+    bend = trackTurn(track, state.progress, progress, midLane);
   }
 
-  return {
-    progress: advance(track, state.progress, lane, along * dt),
-    lane,
-    heading,
-    turnRate,
-    speed: state.speed,
-  };
+  let heading = state.heading + steered + bend;
+  heading = Math.max(-steering.maxHeading, Math.min(steering.maxHeading, heading));
+  if (lane === 0 || lane === track.width) heading = 0;
+
+  return { progress, lane, heading, turnRate, speed: state.speed };
+}
+
+/** How far the track direction turns left between two progress values, in radians. */
+function trackTurn(track: TrackSpec, from: number, to: number, lane: number): number {
+  const a = poseAt(track, from, lane);
+  const b = poseAt(track, to, lane);
+  // Angle of each direction, increasing as the track turns left (towards -Z
+  // when heading +X), wrapped to the shortest way round.
+  const angle = Math.atan2(-b.forwardZ, b.forwardX) - Math.atan2(-a.forwardZ, a.forwardX);
+  return Math.atan2(Math.sin(angle), Math.cos(angle));
 }
 
 /** Linear interpolation between two states, for smooth rendering. */

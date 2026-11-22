@@ -16,7 +16,6 @@ export interface GameConfig extends ConfigTree {
   steering: {
     max_turn_rate: number;
     response: number;
-    straighten_time: number;
     max_heading: number;
     ramp_up: number;
     ramp_down: number;
@@ -52,7 +51,6 @@ export function steeringParams(config: GameConfig): SteeringParams {
   return {
     maxTurnRate: config.steering.max_turn_rate * degrees,
     response: config.steering.response,
-    straightenTime: config.steering.straighten_time,
     maxHeading: config.steering.max_heading * degrees,
   };
 }

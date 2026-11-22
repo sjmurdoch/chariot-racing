@@ -30,18 +30,18 @@ cruise_speed = 22
 start_lane = 6
 
 [steering]
-# The chariot has its own heading: steering turns it, and at a bend the
-# player must steer round or run wide into the outer wall.
+# The chariot has its own heading: steering turns it, and with no steering
+# it goes in a straight line. At a bend the player must steer round or run
+# wide into the outer wall.
 # Turning rate at full lock, in degrees per second. Holding the innermost
 # lane at cruising speed needs most of it; outer lanes need much less.
 max_turn_rate = 180
 # Seconds to reach about two-thirds of the steered turning rate.
 response = 0.12
-# Seconds for the horses to line up with the track again on their own. This
-# makes straights forgiving but doesn't take the chariot round a bend.
-straighten_time = 0.6
-# Largest angle, in degrees, the chariot can point away from the track.
-max_heading = 60
+# Largest angle, in degrees, the chariot can point away from the track. A
+# straight path from the inside lane meets the outer wall at about 75°, so
+# this never bends a straight path.
+max_heading = 80
 # Seconds for a held key or screen half to build up to full lock, and to
 # let go again. Tilt steering is proportional, so it isn't ramped.
 ramp_up = 0.35

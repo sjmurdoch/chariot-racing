@@ -108,6 +108,20 @@ export function poseAt(track: TrackSpec, progress: number, offset: number): Pose
 }
 
 /**
+ * The direction actually travelled, in world X/Z, for a heading measured
+ * from the track direction at `pose` (positive turns outwards, to the right).
+ */
+export function travelDirection(pose: Pose, heading: number): { x: number; z: number } {
+  const cos = Math.cos(heading);
+  const sin = Math.sin(heading);
+  // The driver's right, with Y up, is (-forwardZ, forwardX).
+  return {
+    x: pose.forwardX * cos - pose.forwardZ * sin,
+    z: pose.forwardZ * cos + pose.forwardX * sin,
+  };
+}
+
+/**
  * Moves `distance` metres forward along the lane at `offset`, crossing
  * segment boundaries as needed, and returns the new progress.
  */

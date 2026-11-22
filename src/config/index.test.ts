@@ -14,7 +14,6 @@ describe('game.toml defaults', () => {
       steering: {
         max_turn_rate: num,
         response: num,
-        straighten_time: num,
         max_heading: num,
         ramp_up: num,
         ramp_down: num,
