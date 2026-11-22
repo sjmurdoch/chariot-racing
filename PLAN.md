@@ -45,8 +45,8 @@ A simple, pick-up-and-play 3D chariot race in the Circus Maximus. The primary pl
 
 Each milestone is a small, playable, tested increment.
 
-1. **Scaffold:** Vite + TypeScript + Three.js project, an empty scene, TOML config loading, Vitest and the Playwright (uv) harness, CI running the tests.
-2. **Track:** a stadium-shaped track generated in code, with the spina, the metae and sand. A camera driving a fixed racing line around it.
+1. ✅ **Scaffold:** Vite + TypeScript + Three.js project, an empty scene, TOML config loading, Vitest and the Playwright (uv) harness, CI running the tests.
+2. ✅ **Track:** a stadium-shaped track generated in code, with the spina, the metae and sand. A camera driving a fixed racing line around it. (Both ends are semicircular for now; the flatter carceres end arrives with the starting gates in milestone 6. A plain obelisk is already on the spina.)
 3. **Steering:** the player's chariot with forward speed and lateral steering. Keyboard, touch-halves and tilt input (with permission prompt and calibration). Driver's-view camera.
 4. **Core loop:** distance advantage from the inside line, collisions with the metae and the crash time penalty, the 7-lap count, finish detection.
 5. **Rivals:** 3 AI chariots following racing lines with personality and skill levels. Slipstreaming, side bumping, wreckage. Edge indicators.
@@ -60,3 +60,4 @@ Each milestone is a small, playable, tested increment.
 - Name of the game.
 - Exact compressed track proportions, to be tuned during playtesting in milestone 4.
 - Sources for the historical facts, to be collected and checked in milestone 9.
+- Scenery dimensions are placeholders to check against sources in milestone 9: obelisk height (24 m), meta cone height (6 m), spina width (12 m, chosen for gameplay).
