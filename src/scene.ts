@@ -1,5 +1,7 @@
 import * as THREE from 'three';
-import type { GameConfig } from './config';
+import { trackSpec, type GameConfig } from './config';
+import { buildArena } from './render/arena';
+import { advance, poseAt, type TrackSpec } from './sim/track';
 
 const SKY = 0x87b5d9;
 const SAND = 0xc8a165;
@@ -8,11 +10,14 @@ export interface Stage {
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
+  track: TrackSpec;
   resize(): void;
+  /** Places the driver's-view camera at a point on the track. */
+  placeCamera(progress: number, offset: number): void;
   render(): void;
 }
 
-/** Creates the renderer and a placeholder arena: sky, sand and light. */
+/** Creates the renderer, the arena and the driver's-view camera. */
 export function createStage(canvas: HTMLCanvasElement, config: GameConfig): Stage {
   const renderer = new THREE.WebGLRenderer({
     canvas,
@@ -21,25 +26,27 @@ export function createStage(canvas: HTMLCanvasElement, config: GameConfig): Stag
   });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, config.render.max_pixel_ratio));
 
+  const track = trackSpec(config);
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(SKY);
-  scene.fog = new THREE.Fog(SKY, 150, 600);
+  scene.fog = new THREE.Fog(SKY, 200, 700);
 
-  scene.add(new THREE.HemisphereLight(0xdfefff, SAND, 1.2));
-  const sun = new THREE.DirectionalLight(0xfff1d6, 2);
-  sun.position.set(80, 120, 40);
+  scene.add(new THREE.HemisphereLight(0xdfefff, SAND, 1.6));
+  const sun = new THREE.DirectionalLight(0xfff1d6, 1.8);
+  sun.position.set(60, 120, 80);
   scene.add(sun);
+  scene.add(buildArena(renderer, track));
 
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(1200, 1200),
-    new THREE.MeshLambertMaterial({ color: SAND }),
-  );
-  ground.rotation.x = -Math.PI / 2;
-  scene.add(ground);
+  const camera = new THREE.PerspectiveCamera(config.camera.fov, 1, 0.1, 1000);
+  const eye = config.camera.height;
+  const lookahead = config.camera.lookahead;
 
-  const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 1000);
-  camera.position.set(0, 2.2, 0);
-  camera.lookAt(0, 1.5, -20);
+  function placeCamera(progress: number, offset: number): void {
+    const here = poseAt(track, progress, offset);
+    const ahead = poseAt(track, advance(track, progress, offset, lookahead), offset);
+    camera.position.set(here.x, eye, here.z);
+    camera.lookAt(ahead.x, eye * 0.75, ahead.z);
+  }
 
   function resize(): void {
     const width = canvas.clientWidth;
@@ -53,7 +60,9 @@ export function createStage(canvas: HTMLCanvasElement, config: GameConfig): Stag
     renderer,
     scene,
     camera,
+    track,
     resize,
+    placeCamera,
     render: () => renderer.render(scene, camera),
   };
 }

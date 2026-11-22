@@ -11,6 +11,32 @@
 # Number of laps in a race. Historically seven.
 laps = 7
 
+[track]
+# A compressed Circus Maximus, sized for a race of about two minutes.
+# Length of each straight, between the two turning posts (metae), in metres.
+straight_length = 150
+# Turning radius of the innermost lane, measured from the centre of a meta.
+inner_radius = 8
+# Width of the track from the innermost lane to the outer wall.
+width = 24
+# Gap between the innermost lane and the spina wall: about half a quadriga's
+# width, so a chariot on the innermost lane is grazing the spina.
+spina_clearance = 2
+
+[chariot]
+# Cruising speed in metres per second (22 m/s is about 80 km/h).
+cruise_speed = 22
+# Starting distance out from the innermost lane, in metres.
+start_lane = 6
+
+[camera]
+# Driver's eye height above the sand, in metres.
+height = 2.1
+# Vertical field of view, in degrees.
+fov = 70
+# How far ahead along the lane the driver looks, in metres.
+lookahead = 14
+
 [render]
 # Upper limit on the device pixel ratio, to protect frame rate on phones.
 max_pixel_ratio = 2
@@ -20,3 +46,6 @@ antialias = true
 [debug]
 # Show a frames-per-second counter.
 show_fps = false
+# Where on the track to start, in segments: 0 is the start line, 1 the far
+# turn, 2 the back straight and 3 the near turn. Handy for testing turns.
+start_progress = 0.0

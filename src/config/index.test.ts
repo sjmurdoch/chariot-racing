@@ -1,17 +1,39 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_CONFIG, loadConfig } from './index';
+import { lapLength, spinaHalfWidth } from '../sim/track';
+import { DEFAULT_CONFIG, loadConfig, trackSpec } from './index';
+
+const num = expect.any(Number);
+const bool = expect.any(Boolean);
 
 describe('game.toml defaults', () => {
   it('has every setting with the expected type', () => {
     expect(DEFAULT_CONFIG).toEqual({
-      race: { laps: expect.any(Number) },
-      render: { max_pixel_ratio: expect.any(Number), antialias: expect.any(Boolean) },
-      debug: { show_fps: expect.any(Boolean) },
+      race: { laps: num },
+      track: { straight_length: num, inner_radius: num, width: num, spina_clearance: num },
+      chariot: { cruise_speed: num, start_lane: num },
+      camera: { height: num, fov: num, lookahead: num },
+      render: { max_pixel_ratio: num, antialias: bool },
+      debug: { show_fps: bool, start_progress: num },
     });
   });
 
   it('races the historical seven laps', () => {
     expect(DEFAULT_CONFIG.race.laps).toBe(7);
+  });
+
+  it('starts on the track, with a spina between the metae', () => {
+    const track = trackSpec(DEFAULT_CONFIG);
+    expect(DEFAULT_CONFIG.chariot.start_lane).toBeGreaterThanOrEqual(0);
+    expect(DEFAULT_CONFIG.chariot.start_lane).toBeLessThanOrEqual(track.width);
+    expect(spinaHalfWidth(track)).toBeGreaterThan(0);
+  });
+
+  it('gives a race of about two minutes at cruising speed', () => {
+    const { race, chariot } = DEFAULT_CONFIG;
+    const seconds =
+      (race.laps * lapLength(trackSpec(DEFAULT_CONFIG), chariot.start_lane)) / chariot.cruise_speed;
+    expect(seconds).toBeGreaterThan(90);
+    expect(seconds).toBeLessThan(150);
   });
 });
 
