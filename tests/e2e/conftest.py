@@ -96,11 +96,10 @@ def wait_until_rendering(page: Page) -> None:
 
 
 def start_race(page: Page) -> None:
-    """Waits for the start screen and taps it."""
+    """Waits for the start screen and taps Race."""
     wait_until_rendering(page)
-    start = page.locator("#start")
-    start.click()
-    expect(start).to_be_hidden()
+    page.locator("#race-button").click()
+    expect(page.locator("#start")).to_be_hidden()
 
 
 @pytest.fixture

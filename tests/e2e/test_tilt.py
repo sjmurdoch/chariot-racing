@@ -130,8 +130,8 @@ def test_race_waits_for_permission_answer(page: Page) -> None:
     )
     page.goto("./")
     wait_until_rendering(page)
-    page.locator("#start").click()
-    expect(page.locator("#start")).to_contain_text("Waiting for motion access")
+    page.locator("#race-button").click()
+    expect(page.locator("#start .waiting-note")).to_be_visible()
     page.wait_for_timeout(500)
     assert not page.evaluate("() => window.chariot.started")
     assert page.evaluate("() => window.chariot.state.progress") == 0

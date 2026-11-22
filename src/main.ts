@@ -11,13 +11,23 @@ import {
 } from './input/steering';
 import { createTiltSteer, type TiltSteer } from './input/tilt';
 import { createStage } from './scene';
-import { buildChariots } from './render/chariots';
+import * as THREE from 'three';
+import { buildChariots, type ChariotModels } from './render/chariots';
 import { buildWreckage } from './render/wreckage';
 import { interpolateChariot, startChariot, type ChariotState } from './sim/chariot';
 import { createFixedClock } from './sim/clock';
 import { FACTIONS, isFactionId, rivalsFor, type FactionId } from './sim/factions';
+import {
+  browserStorage,
+  DIFFICULTIES,
+  initialChoices,
+  isDifficulty,
+  saveChoices,
+  type Choices,
+  type Difficulty,
+} from './ui/choices';
 import { createRacer, placeOf, stepField, type Racer } from './sim/field';
-import { currentLap, formatTime, ordinal, roman, type RaceState } from './sim/race';
+import { currentLap, formatTime, ordinal, roman, startRace, type RaceState } from './sim/race';
 import { separation } from './sim/pack';
 import { createBrain } from './sim/rival';
 import type { Wreck } from './sim/wreckage';
@@ -46,6 +56,8 @@ declare global {
       paused: boolean;
       /** The chariot as last rendered; see sim/chariot.ts. */
       state: ChariotState;
+      /** The player's faction and difficulty, from the start screen. */
+      choices: Choices;
       /** Laps, timing and finish; see sim/race.ts. */
       race: RaceState;
       /** Wreckage on the track; see sim/wreckage.ts. */
@@ -69,7 +81,6 @@ for (const { key, source } of applied) console.debug('config %s overridden from 
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
 const fps = document.querySelector<HTMLDivElement>('#fps')!;
-const startButton = document.querySelector<HTMLButtonElement>('#start')!;
 fps.hidden = !config.debug.show_fps;
 
 const stage = createStage(canvas, config);
@@ -78,19 +89,38 @@ const keyboard = createKeyboardSteer(window);
 const pointer = createPointerSteer(canvas);
 const tilt = createTiltSteer(tiltParams(config));
 
-let playerFaction: FactionId = 'prasina';
+// The player's choices: faction and difficulty, from the start screen. A
+// setting given in the URL wins over what the player chose last time.
+const storage = browserStorage();
+const explicitly = (key: string) => applied.some((a) => a.key === key && a.source === 'URL');
+let defaultFaction: FactionId = 'prasina';
 if (isFactionId(config.race.faction)) {
-  playerFaction = config.race.faction;
+  defaultFaction = config.race.faction;
 } else {
   console.warn('Unknown faction "%s" in race.faction; racing for prasina', config.race.faction);
 }
+let defaultDifficulty: Difficulty = 'normal';
+if (isDifficulty(config.rivals.difficulty)) {
+  defaultDifficulty = config.rivals.difficulty;
+} else {
+  console.warn('Unknown difficulty "%s" in rivals.difficulty; using normal', config.rivals.difficulty);
+}
+let choices: Choices = initialChoices(
+  { faction: defaultFaction, difficulty: defaultDifficulty },
+  {
+    ...(explicitly('race.faction') ? { faction: defaultFaction } : {}),
+    ...(explicitly('rivals.difficulty') ? { difficulty: defaultDifficulty } : {}),
+  },
+  storage,
+);
 
 /** A fresh field on the start line, from a standstill: the player first, then the rivals. */
 function newField(): Racer[] {
   const start = config.debug.start_progress;
-  const rivals = rivalsFor(playerFaction, config.rivals.count, config.rivals.skill);
+  const skill = config.rivals.skill * DIFFICULTIES[choices.difficulty].skill;
+  const rivals = rivalsFor(choices.faction, config.rivals.count, skill);
   return [
-    createRacer(playerFaction, startChariot(start, config.chariot.start_lane), chariot),
+    createRacer(choices.faction, startChariot(start, config.chariot.start_lane), chariot),
     ...rivals.map((r) =>
       createRacer(
         r.faction,
@@ -114,29 +144,45 @@ function startingWrecks(): Wreck[] {
   return at >= 0 ? [{ progress: at, lane: 0, owner: -1, age: 0 }] : [];
 }
 
-let previous = newField();
-let current = previous;
-let wrecks: Wreck[] = startingWrecks();
-const models = buildChariots(
-  stage.track,
-  current.map((r) => FACTIONS[r.faction as FactionId].hex),
-);
-models.hide(0); // The player's own chariot is behind the camera.
-stage.scene.add(models.group);
+const factionHex = (faction: string) => FACTIONS[faction as FactionId].hex;
 const wreckage = buildWreckage(stage.track);
 stage.scene.add(wreckage.group);
-const colourOfRacer = (i: number) => FACTIONS[(current[i]?.faction ?? 'albata') as FactionId].hex;
+const colourOfRacer = (i: number) => factionHex(current[i]?.faction ?? 'albata');
 
-// A marker at the screen edge for each rival beside or behind the player.
-const markers = current.slice(1).map((r) => {
-  const marker = document.createElement('div');
-  marker.className = 'edge-marker';
-  marker.dataset.faction = r.faction;
-  marker.style.color = `#${FACTIONS[r.faction as FactionId].hex.toString(16).padStart(6, '0')}`;
-  marker.hidden = true;
-  document.querySelector('#edge-markers')!.append(marker);
-  return marker;
-});
+let previous: Racer[] = [];
+let current: Racer[] = [];
+let wrecks: Wreck[] = [];
+let models: ChariotModels | undefined;
+let markers: HTMLElement[] = [];
+
+/** Builds the rivals' models and edge markers for the current field. */
+function buildFieldView(): void {
+  if (models) {
+    stage.scene.remove(models.group);
+    models.group.traverse((object) => {
+      if (object instanceof THREE.Mesh) {
+        object.geometry.dispose();
+        (object.material as THREE.Material).dispose();
+      }
+    });
+  }
+  models = buildChariots(stage.track, current.map((r) => factionHex(r.faction)));
+  models.hide(0); // The player's own chariot is behind the camera.
+  for (let i = 1; i < current.length; i++) models.place(i, current[i]!.chariot);
+  stage.scene.add(models.group);
+
+  // A marker at the screen edge for each rival beside or behind the player.
+  for (const marker of markers) marker.remove();
+  markers = current.slice(1).map((r) => {
+    const marker = document.createElement('div');
+    marker.className = 'edge-marker';
+    marker.dataset.faction = r.faction;
+    marker.style.color = `#${factionHex(r.faction).toString(16).padStart(6, '0')}`;
+    marker.hidden = true;
+    document.querySelector('#edge-markers')!.append(marker);
+    return marker;
+  });
+}
 
 function updateMarkers(): void {
   const player = current[0]!.chariot;
@@ -157,8 +203,9 @@ const hooks = {
   frames: 0,
   started: false,
   paused: false,
-  state: current[0]!.chariot,
-  race: current[0]!.race,
+  choices,
+  state: startChariot(0, 0),
+  race: startRace(),
   wrecks,
   field: [] as { faction: string; progress: number; lane: number; place: number; crashes: number }[],
   input: { steer: 0, source: 'none' } as SteerReading,
@@ -166,6 +213,17 @@ const hooks = {
   drawCalls: 0,
 };
 window.chariot = hooks;
+
+/** Puts every chariot back on the start line, as the player has chosen. */
+function resetField(): void {
+  previous = current = newField();
+  wrecks = startingWrecks();
+  hooks.wrecks = wrecks;
+  hooks.state = current[0]!.chariot;
+  hooks.race = current[0]!.race;
+  shownCrashes = 0;
+  buildFieldView();
+}
 
 stage.resize();
 window.addEventListener('resize', stage.resize);
@@ -176,17 +234,49 @@ watchOrientation(document.querySelector<HTMLElement>('#rotate')!, (paused) => {
   hooks.paused = paused;
 });
 
+const startScreen = document.querySelector<HTMLElement>('#start')!;
+const factionButtons = [...startScreen.querySelectorAll<HTMLButtonElement>('[data-faction]')];
+const difficultyButtons = [...startScreen.querySelectorAll<HTMLButtonElement>('[data-difficulty]')];
+
+function showChoices(): void {
+  for (const b of factionButtons) b.ariaChecked = String(b.dataset.faction === choices.faction);
+  for (const b of difficultyButtons) {
+    b.ariaChecked = String(b.dataset.difficulty === choices.difficulty);
+  }
+}
+
+function choose(next: Partial<Choices>): void {
+  choices = { ...choices, ...next };
+  hooks.choices = choices;
+  saveChoices(choices, storage);
+  showChoices();
+  resetField();
+}
+for (const b of factionButtons) {
+  b.addEventListener('click', () => {
+    if (b.dataset.faction && isFactionId(b.dataset.faction)) choose({ faction: b.dataset.faction });
+  });
+}
+for (const b of difficultyButtons) {
+  b.addEventListener('click', () => {
+    if (b.dataset.difficulty && isDifficulty(b.dataset.difficulty)) {
+      choose({ difficulty: b.dataset.difficulty });
+    }
+  });
+}
+showChoices();
+
 let starting = false;
 
 /**
- * Handles the start tap or key press. The race itself begins only once the
+ * Handles the Race button or Enter. The race itself begins only once the
  * player has answered the motion permission prompt (on iOS), so the chariot
  * doesn't set off while the prompt is still on screen.
  */
 function start(): void {
   if (starting) return;
   starting = true;
-  startButton.classList.add('waiting');
+  startScreen.classList.add('waiting');
   // Ask for motion access first and synchronously, inside the tap: iOS only
   // prompts in response to a user gesture.
   const tiltReady = tilt.enable();
@@ -195,13 +285,18 @@ function start(): void {
     console.debug('tilt steering %s', status);
     if (status === 'granted') tilt.calibrate();
     hooks.started = true;
-    startButton.hidden = true;
+    startScreen.hidden = true;
+    startScreen.classList.remove('waiting');
     hud.hidden = false;
   });
 }
-startButton.addEventListener('click', start);
+document.querySelector('#race-button')!.addEventListener('click', start);
 window.addEventListener('keydown', (event) => {
-  if (!starting && event.code !== 'Backquote') start();
+  const onChoice = (event.target as Element | null)?.closest?.('.choice');
+  if (!startScreen.hidden && !starting && event.code === 'Enter' && !onChoice) {
+    event.preventDefault();
+    start();
+  }
 });
 
 const overlay = createOverlay(document.querySelector<HTMLElement>('#overlay')!, config.debug.overlay);
@@ -251,16 +346,22 @@ function showFinish(): void {
 
 /** Puts every chariot back on the start line for another race. */
 function raceAgain(): void {
-  previous = current = newField();
-  wrecks = startingWrecks();
-  hooks.wrecks = wrecks;
-  hooks.race = current[0]!.race;
-  shownCrashes = 0;
+  resetField();
   finish.hidden = true;
   hud.hidden = false;
   if (tilt.status === 'granted') tilt.calibrate();
 }
 document.querySelector('#again')!.addEventListener('click', raceAgain);
+
+/** Back to the start screen, to choose a faction or difficulty. */
+function backToMenu(): void {
+  resetField();
+  finish.hidden = true;
+  hooks.started = false;
+  starting = false;
+  startScreen.hidden = false;
+}
+document.querySelector('#menu')!.addEventListener('click', backToMenu);
 window.addEventListener('keydown', (event) => {
   if (!finish.hidden && (event.code === 'Enter' || event.code === 'Space')) {
     event.preventDefault();
@@ -313,6 +414,9 @@ function snapshot(): OverlaySnapshot {
   };
 }
 
+// Everything is declared: put the field on the start line and begin drawing.
+resetField();
+
 stage.renderer.setAnimationLoop((now) => {
   const elapsed = lastTime === undefined ? 0 : (now - lastTime) / 1000;
   lastTime = now;
@@ -357,7 +461,7 @@ stage.renderer.setAnimationLoop((now) => {
 
   hooks.state = interpolateChariot(previous[0]!.chariot, player, clock.alpha);
   for (let i = 1; i < current.length; i++) {
-    models.place(i, interpolateChariot(previous[i]!.chariot, current[i]!.chariot, clock.alpha));
+    models!.place(i, interpolateChariot(previous[i]!.chariot, current[i]!.chariot, clock.alpha));
   }
   updateMarkers();
   wreckage.update(wrecks, colourOfRacer);

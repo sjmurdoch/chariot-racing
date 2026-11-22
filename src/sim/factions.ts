@@ -42,7 +42,7 @@ export interface RivalSetup {
  * holds the middle lane, so the player has to take the inside line to win.
  */
 const STYLES: { personality: Personality; startLane: number }[] = [
-  { personality: { line: 2, skill: 0.97 }, startLane: 1.5 },
+  { personality: { line: 2, skill: 0.94 }, startLane: 1.5 },
   { personality: { line: 7, skill: 1.0 }, startLane: 11 },
   { personality: { line: 13, skill: 1.06 }, startLane: 16 },
 ];

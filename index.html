@@ -25,18 +25,32 @@
     </div>
     <div id="fps" hidden></div>
     <pre id="overlay" hidden></pre>
-    <button id="start" type="button">
+    <div id="start">
       <span class="title">Circus Maximus</span>
-      <span class="action">Tap to race</span>
+      <div class="choice" id="faction-choice" role="radiogroup" aria-label="Your faction">
+        <button type="button" role="radio" data-faction="russata"><span class="swatch"></span>Russata<small>Red</small></button>
+        <button type="button" role="radio" data-faction="albata"><span class="swatch"></span>Albata<small>White</small></button>
+        <button type="button" role="radio" data-faction="veneta"><span class="swatch"></span>Veneta<small>Blue</small></button>
+        <button type="button" role="radio" data-faction="prasina"><span class="swatch"></span>Prasina<small>Green</small></button>
+      </div>
+      <div class="choice" id="difficulty-choice" role="radiogroup" aria-label="Rivals">
+        <button type="button" role="radio" data-difficulty="easy">Easy</button>
+        <button type="button" role="radio" data-difficulty="normal">Normal</button>
+        <button type="button" role="radio" data-difficulty="hard">Hard</button>
+      </div>
+      <button type="button" id="race-button" class="action">Race</button>
       <span class="waiting-note">Waiting for motion access…</span>
-      <span class="help">Tilt to steer, or hold the left or right side of the screen.<br />Keys: ← → or A D.</span>
+      <span class="help">Tilt to steer, or hold the left or right side of the screen. Keys: ←&nbsp;→ or A&nbsp;D, Enter to race.</span>
       <span class="hint" id="install-hint" hidden>For full screen, tap Share, then Add to Home Screen.</span>
-    </button>
+    </div>
     <div id="finish" hidden>
       <span class="title">Finis</span>
       <span class="time" id="finish-time"></span>
       <span class="detail" id="finish-detail"></span>
-      <button type="button" id="again" class="action">Race again</button>
+      <div class="buttons">
+        <button type="button" id="again" class="action">Race again</button>
+        <button type="button" id="menu" class="secondary">Choose faction</button>
+      </div>
     </div>
     <div id="rotate" hidden>
       <span class="phone" aria-hidden="true"></span>

@@ -10,7 +10,7 @@ describe('game.toml defaults', () => {
   it('has every setting with the expected type', () => {
     expect(DEFAULT_CONFIG).toEqual({
       race: { laps: num, faction: expect.any(String) },
-      rivals: { count: num, skill: num, slipstream_boost: num },
+      rivals: { count: num, difficulty: expect.any(String), skill: num, slipstream_boost: num },
       track: { straight_length: num, inner_radius: num, width: num, spina_clearance: num },
       chariot: { cruise_speed: num, start_lane: num, acceleration: num, braking: num },
       crash: { speed: num, bounce_angle: num, clearance: num },

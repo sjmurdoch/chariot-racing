@@ -11,10 +11,10 @@ def lane(page: Page) -> float:
     return page.evaluate("() => window.chariot.state.lane")
 
 
-def test_any_key_starts_the_race(page: Page) -> None:
+def test_enter_starts_the_race(page: Page) -> None:
     page.goto("./")
     wait_until_rendering(page)
-    page.keyboard.press("Space")
+    page.keyboard.press("Enter")
     expect(page.locator("#start")).to_be_hidden()
     assert page.evaluate("() => window.chariot.started")
 
