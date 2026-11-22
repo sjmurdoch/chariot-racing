@@ -15,9 +15,11 @@ import { interpolateChariot, startChariot, stepChariot, type ChariotState } from
 import { createFixedClock } from './sim/clock';
 import { lapsCompleted } from './sim/track';
 import {
+  displayMode,
   enterFullscreenLandscape,
   isInstalled,
   isIPhone,
+  safeAreaInsets,
   watchOrientation,
 } from './ui/display';
 import { createFrameStats } from './ui/frame-stats';
@@ -146,6 +148,10 @@ function snapshot(): OverlaySnapshot {
     extra: [
       ['input', `${hooks.input.source} ${hooks.input.steer.toFixed(2)}`],
       ['tilt', describeTilt()],
+      ['canvas', `${canvas.clientWidth}×${canvas.clientHeight}`],
+      ['screen', `${screen.width}×${screen.height}`],
+      ['insets', safeAreaInsets().join(' ')],
+      ['mode', displayMode()],
     ],
     overrides,
   };
@@ -183,6 +189,7 @@ stage.renderer.setAnimationLoop((now) => {
 
   hooks.state = interpolateChariot(previous, current, clock.alpha);
   stage.placeCamera(hooks.state);
+  stage.resize();
   stage.render();
   hooks.drawCalls = stage.renderer.info.render.calls;
   hooks.frames += 1;

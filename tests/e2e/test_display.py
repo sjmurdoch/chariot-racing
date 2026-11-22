@@ -121,3 +121,31 @@ def test_other_devices_hide_home_screen_hint(page: Page) -> None:
     page.goto("./")
     wait_until_rendering(page)
     expect(page.locator("#install-hint")).to_be_hidden()
+
+
+def test_canvas_and_drawing_buffer_follow_resize(page: Page) -> None:
+    page.set_viewport_size(LANDSCAPE)
+    page.goto("./")
+    wait_until_rendering(page)
+    page.set_viewport_size({"width": 932, "height": 430})
+    page.wait_for_function(
+        """() => {
+            const c = document.querySelector('#game');
+            const ratio = window.chariot.config.render.max_pixel_ratio;
+            const dpr = Math.min(window.devicePixelRatio, ratio);
+            return c.clientWidth === 932 && c.clientHeight === 430
+                && c.width === Math.floor(932 * dpr) && c.height === Math.floor(430 * dpr);
+        }"""
+    )
+    box = page.locator("#game").bounding_box()
+    assert box == {"x": 0, "y": 0, "width": 932, "height": 430}
+
+
+def test_overlay_reports_display_details(page: Page) -> None:
+    page.set_viewport_size(LANDSCAPE)
+    page.goto("./?debug.overlay=1")
+    wait_until_rendering(page)
+    overlay = page.locator("#overlay")
+    expect(overlay).to_contain_text("canvas    844×390")
+    expect(overlay).to_contain_text("insets    0 0 0 0")
+    expect(overlay).to_contain_text("mode      browser")

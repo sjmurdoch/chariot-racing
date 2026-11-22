@@ -56,9 +56,20 @@ export function createStage(canvas: HTMLCanvasElement, config: GameConfig): Stag
     );
   }
 
+  let sizedWidth = -1;
+  let sizedHeight = -1;
+
+  /**
+   * Matches the drawing buffer to the canvas's on-screen size. Cheap when
+   * nothing changed, so it can run every frame: iOS reports the final size
+   * a little after rotation, sometimes without a resize event.
+   */
   function resize(): void {
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
+    if (width === sizedWidth && height === sizedHeight) return;
+    sizedWidth = width;
+    sizedHeight = height;
     renderer.setSize(width, height, false);
     camera.aspect = width / Math.max(height, 1);
     camera.updateProjectionMatrix();

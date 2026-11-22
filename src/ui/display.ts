@@ -24,6 +24,31 @@ export function isInstalled(): boolean {
   );
 }
 
+/** How the page is shown: in a browser tab or as a Home Screen app, and whether full screen. */
+export function displayMode(): string {
+  const mode = isInstalled() ? 'home screen app' : 'browser';
+  return document.fullscreenElement ? `${mode}, full screen` : mode;
+}
+
+/** The safe-area insets (notch, home indicator) in CSS pixels: top, right, bottom, left. */
+export function safeAreaInsets(): [number, number, number, number] {
+  const probe = document.createElement('div');
+  probe.style.cssText =
+    'position:fixed;visibility:hidden;pointer-events:none;' +
+    'padding:env(safe-area-inset-top) env(safe-area-inset-right) ' +
+    'env(safe-area-inset-bottom) env(safe-area-inset-left)';
+  document.body.appendChild(probe);
+  const style = getComputedStyle(probe);
+  const insets: [number, number, number, number] = [
+    parseFloat(style.paddingTop) || 0,
+    parseFloat(style.paddingRight) || 0,
+    parseFloat(style.paddingBottom) || 0,
+    parseFloat(style.paddingLeft) || 0,
+  ];
+  probe.remove();
+  return insets;
+}
+
 /** Whether this is an iPhone or iPod, where only the Home Screen gives full screen. */
 export function isIPhone(userAgent = navigator.userAgent): boolean {
   return /\b(iPhone|iPod)\b/.test(userAgent);
