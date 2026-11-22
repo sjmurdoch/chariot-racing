@@ -4,6 +4,8 @@ A simple 3D Roman chariot racing game for the browser, designed first for phones
 
 Play it at <https://sjmurdoch.github.io/chariot-racing/>. Every push to `main` that passes CI is published there automatically.
 
+The game is played in landscape. On Android and desktop it goes full screen and locks to landscape when the race starts. iPhone Safari can do neither, so on an iPhone tap Share, then **Add to Home Screen**, and launch it from there for full screen. On any phone, holding it upright pauses the race and asks you to turn it sideways.
+
 ## Development
 
 Requires Node.js 24 or later and [uv](https://docs.astral.sh/uv/).
