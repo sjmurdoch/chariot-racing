@@ -44,6 +44,28 @@ export function chooseSteer(readings: Partial<Record<SteerSource, number | null>
   return { steer: 0, source: 'none' };
 }
 
+/**
+ * Eases an on/off input (a key, a held screen half) towards its target, so
+ * holding it builds steering up over `riseTime` seconds instead of jumping
+ * straight to full lock. Letting go or reversing takes only `fallTime`.
+ */
+export function rampSteer(
+  current: number,
+  target: number,
+  dt: number,
+  riseTime: number,
+  fallTime: number,
+): number {
+  const easing = Math.abs(target) < Math.abs(current) || target * current < 0;
+  const rate = dt / (easing ? fallTime : riseTime);
+  if (Math.abs(target - current) <= rate) return target;
+  const next = current + Math.sign(target - current) * rate;
+  // When easing off, stop exactly at the centre rather than overshooting it,
+  // so building up the other way starts cleanly at the rise rate.
+  if (easing && (next * current <= 0 || Math.abs(next) < 1e-9)) return 0;
+  return next;
+}
+
 export function isSteeringKey(code: string): boolean {
   return LEFT_KEYS.has(code) || RIGHT_KEYS.has(code);
 }

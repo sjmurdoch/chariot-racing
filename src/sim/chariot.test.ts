@@ -1,81 +1,137 @@
 import { describe, expect, it } from 'vitest';
 import {
   interpolateChariot,
+  lateralVelocity,
   startChariot,
   stepChariot,
   type ChariotState,
   type SteeringParams,
 } from './chariot';
-import { lapLength, type TrackSpec } from './track';
+import { lapLength, laneRadius, type TrackSpec } from './track';
 
 const track: TrackSpec = { straightLength: 150, innerRadius: 8, width: 24, spinaClearance: 2 };
-const steering: SteeringParams = { maxLateralSpeed: 7, response: 0.15 };
+const steering: SteeringParams = {
+  maxTurnRate: Math.PI,
+  response: 0.12,
+  straightenTime: 0.6,
+  maxHeading: Math.PI / 3,
+};
+const SPEED = 22;
 const DT = 1 / 60;
 
-function run(state: ChariotState, steer: number, seconds: number): ChariotState {
+type Driver = (s: ChariotState) => number;
+
+function run(state: ChariotState, steer: number | Driver, seconds: number): ChariotState {
+  const driver = typeof steer === 'number' ? () => steer : steer;
   let s = state;
-  for (let i = 0; i < Math.round(seconds / DT); i++) s = stepChariot(s, steer, DT, track, steering);
+  for (let i = 0; i < Math.round(seconds / DT); i++) {
+    s = stepChariot(s, driver(s), DT, track, steering);
+  }
   return s;
 }
 
-describe('stepChariot', () => {
+/** The constant steering that follows the lane round a turn at this speed. */
+function steerToHold(lane: number): number {
+  return -SPEED / laneRadius(track, lane) / steering.maxTurnRate;
+}
+
+/** A simple driver that steers to hold `target` lane, as a player would. */
+function holdLane(target: number): Driver {
+  return (s) => {
+    const bendAhead = s.progress % 2 >= 1 ? steerToHold(s.lane) : 0;
+    return bendAhead + 0.15 * (target - s.lane) - 1.2 * s.heading;
+  };
+}
+
+describe('on the straight', () => {
   it('holds its lane with no steering', () => {
-    const end = run(startChariot(0, 6, 22), 0, 2);
+    const end = run(startChariot(0, 6, SPEED), 0, 2);
     expect(end.lane).toBe(6);
-    expect(end.lateralVelocity).toBe(0);
+    expect(end.heading).toBe(0);
   });
 
   it('moves outwards when steering right and inwards when steering left', () => {
-    expect(run(startChariot(0, 10, 22), 1, 0.5).lane).toBeGreaterThan(10);
-    expect(run(startChariot(0, 10, 22), -1, 0.5).lane).toBeLessThan(10);
+    expect(run(startChariot(0, 10, SPEED), 1, 0.5).lane).toBeGreaterThan(10);
+    expect(run(startChariot(0, 10, SPEED), -1, 0.5).lane).toBeLessThan(10);
   });
 
-  it('approaches full sideways speed smoothly', () => {
-    const quick = run(startChariot(0, 10, 22), 1, 0.15);
-    expect(quick.lateralVelocity).toBeGreaterThan(0.55 * steering.maxLateralSpeed);
-    expect(quick.lateralVelocity).toBeLessThan(0.7 * steering.maxLateralSpeed);
-    const settled = run(startChariot(0, 2, 22), 1, 1);
-    expect(settled.lateralVelocity).toBeCloseTo(steering.maxLateralSpeed, 1);
+  it('straightens up on its own after steering', () => {
+    const turned = run(startChariot(0, 6, SPEED), 1, 0.25);
+    expect(turned.heading).toBeGreaterThan(0.1);
+    const settled = run(turned, 0, 3);
+    expect(Math.abs(settled.heading)).toBeLessThan(0.01);
+    const later = run(settled, 0, 1);
+    // Only a few centimetres of residual drift once settled.
+    expect(Math.abs(later.lane - settled.lane)).toBeLessThan(0.1);
   });
 
-  it('scales sideways speed with partial steering and clamps over-steer', () => {
-    const half = run(startChariot(0, 2, 22), 0.5, 1);
-    expect(half.lateralVelocity).toBeCloseTo(3.5, 1);
-    const over = run(startChariot(0, 2, 22), 5, 1);
-    expect(over.lateralVelocity).toBeCloseTo(7, 1);
+  it('never turns further than the largest heading', () => {
+    const end = run(startChariot(0, 2, SPEED), 1, 0.4);
+    expect(end.heading).toBeLessThanOrEqual(steering.maxHeading);
+  });
+});
+
+describe('at a turn', () => {
+  it('runs wide to the wall without steering', () => {
+    const end = run(startChariot(1, 6, SPEED), 0, 2);
+    expect(end.lane).toBe(track.width);
   });
 
-  it('stops at the spina and at the outer wall', () => {
-    const inside = run(startChariot(0, 1, 22), -1, 2);
-    expect(inside.lane).toBe(0);
-    expect(inside.lateralVelocity).toBe(0);
-    const outside = run(startChariot(0, 23, 22), 1, 2);
-    expect(outside.lane).toBe(track.width);
+  it('follows the lane round the turn with steady steering', () => {
+    for (const lane of [4, 10, 18]) {
+      const turnSeconds = (Math.PI * laneRadius(track, lane)) / SPEED;
+      const start = { ...startChariot(1, lane, SPEED), turnRate: steerToHold(lane) * steering.maxTurnRate };
+      const end = run(start, steerToHold(lane), turnSeconds * 0.95);
+      expect(end.progress).toBeGreaterThan(1.9);
+      expect(Math.abs(end.lane - lane)).toBeLessThan(0.5);
+    }
+  });
+
+  it('needs nearly full lock on the inside line, less further out', () => {
+    expect(Math.abs(steerToHold(0))).toBeGreaterThan(0.8);
+    expect(Math.abs(steerToHold(0))).toBeLessThanOrEqual(1);
+    expect(Math.abs(steerToHold(20))).toBeLessThan(0.3);
+  });
+
+  it('cuts into the spina when steering too hard', () => {
+    const end = run(startChariot(1, 4, SPEED), -1, 1.5);
+    expect(end.lane).toBe(0);
+  });
+});
+
+describe('a whole lap', () => {
+  it('completes a lap when the player steers round both turns', () => {
+    const seconds = lapLength(track, 6) / SPEED;
+    const end = run(startChariot(0, 6, SPEED), holdLane(6), seconds * 1.02);
+    expect(end.progress).toBeGreaterThan(4);
+    expect(end.progress).toBeLessThan(4.1);
   });
 
   it('behaves the same at different step sizes', () => {
-    let a = startChariot(0, 10, 22);
-    for (let i = 0; i < 60; i++) a = stepChariot(a, 1, 1 / 60, track, steering);
-    let b = startChariot(0, 10, 22);
-    for (let i = 0; i < 120; i++) b = stepChariot(b, 1, 1 / 120, track, steering);
-    expect(b.lane).toBeCloseTo(a.lane, 1);
+    let a = startChariot(0.9, 10, SPEED);
+    for (let i = 0; i < 60; i++) a = stepChariot(a, -0.4, 1 / 60, track, steering);
+    let b = startChariot(0.9, 10, SPEED);
+    for (let i = 0; i < 120; i++) b = stepChariot(b, -0.4, 1 / 120, track, steering);
+    expect(b.lane).toBeCloseTo(a.lane, 0);
+    expect(b.progress).toBeCloseTo(a.progress, 2);
   });
+});
 
-  it('completes a lap of the lane it holds', () => {
-    const seconds = lapLength(track, 6) / 22;
-    const end = run(startChariot(0, 6, 22), 0, seconds);
-    expect(end.progress).toBeCloseTo(4, 2);
+describe('lateralVelocity', () => {
+  it('is the sideways part of the forward speed', () => {
+    expect(lateralVelocity({ ...startChariot(0, 6, 20), heading: Math.PI / 6 })).toBeCloseTo(10);
   });
 });
 
 describe('interpolateChariot', () => {
   it('blends between two states', () => {
-    const a = { progress: 1, lane: 4, lateralVelocity: 0, speed: 20 };
-    const b = { progress: 2, lane: 6, lateralVelocity: 2, speed: 22 };
+    const a = { progress: 1, lane: 4, heading: 0, turnRate: 0, speed: 20 };
+    const b = { progress: 2, lane: 6, heading: 0.2, turnRate: 1, speed: 22 };
     expect(interpolateChariot(a, b, 0.25)).toEqual({
       progress: 1.25,
       lane: 4.5,
-      lateralVelocity: 0.5,
+      heading: 0.05,
+      turnRate: 0.25,
       speed: 20.5,
     });
   });

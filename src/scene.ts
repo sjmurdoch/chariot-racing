@@ -43,11 +43,11 @@ export function createStage(canvas: HTMLCanvasElement, config: GameConfig): Stag
   const lookahead = config.camera.lookahead;
 
   function placeCamera(chariot: ChariotState): void {
-    const { progress, lane, lateralVelocity, speed } = chariot;
+    const { progress, lane, heading } = chariot;
     const here = poseAt(track, progress, lane);
-    // Look along the actual direction of travel: when sliding sideways, the
-    // point ahead is shifted across the track by the same proportion.
-    const drift = speed > 0 ? (lateralVelocity / speed) * lookahead : 0;
+    // Look along the chariot's own heading, not the track's: the point ahead
+    // is shifted across the track by the tangent of the heading.
+    const drift = Math.tan(heading) * lookahead;
     const ahead = poseAt(track, advance(track, progress, lane, lookahead), lane + drift);
     camera.position.set(here.x, eye, here.z);
     camera.lookAt(ahead.x, eye * 0.75, ahead.z);

@@ -2,7 +2,13 @@ import build from 'virtual:build-info';
 import type { BuildInfo } from '../build/build-info';
 import { loadConfig, steeringParams, tiltParams, type GameConfig } from './config';
 import { valueAt } from './config/overrides';
-import { chooseSteer, createKeyboardSteer, createPointerSteer, type SteerReading } from './input/steering';
+import {
+  chooseSteer,
+  createKeyboardSteer,
+  createPointerSteer,
+  rampSteer,
+  type SteerReading,
+} from './input/steering';
 import { createTiltSteer, type TiltSteer } from './input/tilt';
 import { createStage } from './scene';
 import { interpolateChariot, startChariot, stepChariot, type ChariotState } from './sim/chariot';
@@ -96,6 +102,7 @@ let lastOverlayUpdate = -Infinity;
 const clock = createFixedClock();
 const stats = createFrameStats();
 let lastTime: number | undefined;
+let rampedSteer = 0;
 
 function describeTilt(): string {
   const angle = tilt.angle === null ? '-' : `${tilt.angle.toFixed(1)}°`;
@@ -134,11 +141,21 @@ stage.renderer.setAnimationLoop((now) => {
   lastTime = now;
   const steps = clock.tick(elapsed);
 
-  hooks.input = chooseSteer({
+  const raw = chooseSteer({
     keyboard: keyboard.read(),
     touch: pointer.read(),
     tilt: tilt.read(),
   });
+  // Keys and screen halves are on/off, so ease them in; tilt is proportional.
+  const digital = raw.source === 'keyboard' || raw.source === 'touch';
+  rampedSteer = rampSteer(
+    rampedSteer,
+    digital ? raw.steer : 0,
+    Math.min(elapsed, 0.1),
+    config.steering.ramp_up,
+    config.steering.ramp_down,
+  );
+  hooks.input = digital ? { steer: rampedSteer, source: raw.source } : raw;
   if (hooks.started) {
     for (let i = 0; i < steps; i++) {
       previous = current;

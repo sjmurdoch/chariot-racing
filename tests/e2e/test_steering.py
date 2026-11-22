@@ -25,7 +25,9 @@ def test_arrow_keys_steer(page: Page) -> None:
 
     page.keyboard.down("ArrowRight")
     page.wait_for_function(f"() => window.chariot.state.lane > {START_LANE + 2}")
-    assert page.evaluate("() => window.chariot.input") == {"steer": 1, "source": "keyboard"}
+    assert page.evaluate("() => window.chariot.input.source") == "keyboard"
+    # A held key builds up to full lock rather than jumping there.
+    page.wait_for_function("() => window.chariot.input.steer === 1")
     page.keyboard.up("ArrowRight")
 
     page.keyboard.down("KeyA")
@@ -59,9 +61,17 @@ def test_holding_left_half_steers_left(page: Page) -> None:
 
 
 def test_lane_stays_on_track(page: Page) -> None:
-    page.goto("./?steering.max_lateral_speed=40")
+    page.goto("./")
     start_race(page)
     page.keyboard.down("ArrowLeft")
     page.wait_for_function("() => window.chariot.state.lane === 0")
     page.keyboard.up("ArrowLeft")
     assert lane(page) == 0
+
+
+def test_runs_wide_at_a_bend_without_steering(page: Page) -> None:
+    page.goto("./?debug.start_progress=0.97")
+    start_race(page)
+    page.wait_for_function("() => window.chariot.state.progress > 1")
+    page.wait_for_function("() => window.chariot.state.lane === window.chariot.config.track.width")
+    assert page.evaluate("() => window.chariot.input.source") == "none"

@@ -59,6 +59,14 @@ export function segmentLength(track: TrackSpec, segment: number, offset: number)
   return isTurn(segment) ? Math.PI * laneRadius(track, offset) : track.straightLength;
 }
 
+/**
+ * How sharply the lane at this offset bends, in radians per metre: zero on
+ * the straights, 1 / radius in the turns. Every turn bends left.
+ */
+export function curvature(track: TrackSpec, progress: number, offset: number): number {
+  return isTurn(segmentIndex(progress)) ? 1 / laneRadius(track, offset) : 0;
+}
+
 /** Length in metres of one lap of the lane at this offset. */
 export function lapLength(track: TrackSpec, offset: number): number {
   return 2 * track.straightLength + 2 * Math.PI * laneRadius(track, offset);

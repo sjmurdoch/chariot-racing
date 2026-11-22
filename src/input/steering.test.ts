@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chooseSteer, halvesSteer, keysSteer } from './steering';
+import { chooseSteer, halvesSteer, keysSteer, rampSteer } from './steering';
 
 describe('keysSteer', () => {
   it('is null with no steering keys held', () => {
@@ -58,5 +58,36 @@ describe('chooseSteer', () => {
 
   it('reports no source when nothing is active', () => {
     expect(chooseSteer({})).toEqual({ steer: 0, source: 'none' });
+  });
+});
+
+describe('rampSteer', () => {
+  const rise = 0.4;
+  const fall = 0.1;
+
+  it('builds up to full lock over the rise time', () => {
+    let steer = 0;
+    for (let i = 0; i < 12; i++) steer = rampSteer(steer, 1, 1 / 60, rise, fall);
+    expect(steer).toBeCloseTo(0.5);
+    for (let i = 0; i < 20; i++) steer = rampSteer(steer, 1, 1 / 60, rise, fall);
+    expect(steer).toBe(1);
+  });
+
+  it('lets go quickly', () => {
+    let steer = 1;
+    for (let i = 0; i < 6; i++) steer = rampSteer(steer, 0, 1 / 60, rise, fall);
+    expect(steer).toBe(0);
+  });
+
+  it('reverses quickly through the centre, then builds up again', () => {
+    let steer = 1;
+    for (let i = 0; i < 6; i++) steer = rampSteer(steer, -1, 1 / 60, rise, fall);
+    expect(steer).toBeCloseTo(0);
+    steer = rampSteer(steer, -1, 1 / 60, rise, fall);
+    expect(steer).toBeCloseTo(-1 / 24);
+  });
+
+  it('stops exactly at the target', () => {
+    expect(rampSteer(0.99, 1, 1 / 60, rise, fall)).toBe(1);
   });
 });

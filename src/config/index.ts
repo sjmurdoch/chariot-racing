@@ -13,7 +13,14 @@ export interface GameConfig extends ConfigTree {
     spina_clearance: number;
   };
   chariot: { cruise_speed: number; start_lane: number };
-  steering: { max_lateral_speed: number; response: number };
+  steering: {
+    max_turn_rate: number;
+    response: number;
+    straighten_time: number;
+    max_heading: number;
+    ramp_up: number;
+    ramp_down: number;
+  };
   tilt: { full_lock: number; deadzone: number; invert: boolean };
   camera: { height: number; fov: number; lookahead: number };
   render: { max_pixel_ratio: number; antialias: boolean };
@@ -40,9 +47,12 @@ export function trackSpec(config: GameConfig): TrackSpec {
 
 /** The steering response described by the config. */
 export function steeringParams(config: GameConfig): SteeringParams {
+  const degrees = Math.PI / 180;
   return {
-    maxLateralSpeed: config.steering.max_lateral_speed,
+    maxTurnRate: config.steering.max_turn_rate * degrees,
     response: config.steering.response,
+    straightenTime: config.steering.straighten_time,
+    maxHeading: config.steering.max_heading * degrees,
   };
 }
 

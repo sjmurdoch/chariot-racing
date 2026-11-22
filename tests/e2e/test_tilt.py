@@ -103,7 +103,10 @@ def test_keyboard_overrides_tilt(tilting: Page) -> None:
     tilt_to(tilting, 20)
     tilting.keyboard.down("ArrowLeft")
     tilting.wait_for_function("() => window.chariot.input.source === 'keyboard'")
-    assert tilting.evaluate("() => window.chariot.input.steer") == -1
+    # Keys ramp up to full lock, overriding the tilt the whole time.
+    tilting.wait_for_function(
+        "() => window.chariot.input.source === 'keyboard' && window.chariot.input.steer === -1"
+    )
     tilting.keyboard.up("ArrowLeft")
 
 

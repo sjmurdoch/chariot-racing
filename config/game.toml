@@ -30,11 +30,22 @@ cruise_speed = 22
 start_lane = 6
 
 [steering]
-# Sideways speed at full steering lock, in metres per second.
-max_lateral_speed = 7
-# Seconds to reach about two-thirds of the steered sideways speed. Higher
-# feels heavier; lower feels twitchier.
-response = 0.15
+# The chariot has its own heading: steering turns it, and at a bend the
+# player must steer round or run wide into the outer wall.
+# Turning rate at full lock, in degrees per second. Holding the innermost
+# lane at cruising speed needs most of it; outer lanes need much less.
+max_turn_rate = 180
+# Seconds to reach about two-thirds of the steered turning rate.
+response = 0.12
+# Seconds for the horses to line up with the track again on their own. This
+# makes straights forgiving but doesn't take the chariot round a bend.
+straighten_time = 0.6
+# Largest angle, in degrees, the chariot can point away from the track.
+max_heading = 60
+# Seconds for a held key or screen half to build up to full lock, and to
+# let go again. Tilt steering is proportional, so it isn't ramped.
+ramp_up = 0.35
+ramp_down = 0.1
 
 [tilt]
 # Turning the phone like a steering wheel, held in landscape.

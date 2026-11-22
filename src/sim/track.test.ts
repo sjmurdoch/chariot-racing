@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   advance,
+  curvature,
   lapLength,
   lapsCompleted,
   poseAt,
@@ -109,6 +110,18 @@ describe('advance', () => {
 
   it('does not move for zero distance', () => {
     expect(advance(track, 2.4, 5, 0)).toBe(2.4);
+  });
+});
+
+describe('curvature', () => {
+  it('is zero on the straights', () => {
+    expect(curvature(track, 0.5, 6)).toBe(0);
+    expect(curvature(track, 2.5, 6)).toBe(0);
+  });
+
+  it('is one over the lane radius in the turns', () => {
+    expect(curvature(track, 1.5, 6)).toBeCloseTo(1 / 18);
+    expect(curvature(track, 7.2, 0)).toBeCloseTo(1 / 12);
   });
 });
 
