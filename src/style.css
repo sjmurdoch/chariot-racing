@@ -47,3 +47,47 @@ body {
   border-radius: 6px;
   pointer-events: none;
 }
+
+#start {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  border: 0;
+  color: #fff8ea;
+  background: rgb(40 24 10 / 55%);
+  font: 16px/1.4 Georgia, 'Times New Roman', serif;
+  text-align: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#start[hidden] {
+  display: none;
+}
+
+#start .title {
+  font-size: clamp(28px, 8vh, 56px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 8px rgb(0 0 0 / 50%);
+}
+
+#start .action {
+  padding: 8px 24px;
+  border: 2px solid #e8c766;
+  border-radius: 999px;
+  color: #e8c766;
+  font-size: 20px;
+}
+
+#start .help {
+  max-width: 32em;
+  font-size: 14px;
+  opacity: 0.85;
+}

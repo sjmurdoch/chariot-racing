@@ -29,6 +29,13 @@ cruise_speed = 22
 # Starting distance out from the innermost lane, in metres.
 start_lane = 6
 
+[steering]
+# Sideways speed at full steering lock, in metres per second.
+max_lateral_speed = 7
+# Seconds to reach about two-thirds of the steered sideways speed. Higher
+# feels heavier; lower feels twitchier.
+response = 0.15
+
 [camera]
 # Driver's eye height above the sand, in metres.
 height = 2.1

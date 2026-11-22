@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { trackSpec, type GameConfig } from './config';
 import { buildArena } from './render/arena';
+import type { ChariotState } from './sim/chariot';
 import { advance, poseAt, type TrackSpec } from './sim/track';
 
 const SKY = 0x87b5d9;
@@ -12,8 +13,8 @@ export interface Stage {
   camera: THREE.PerspectiveCamera;
   track: TrackSpec;
   resize(): void;
-  /** Places the driver's-view camera at a point on the track. */
-  placeCamera(progress: number, offset: number): void;
+  /** Places the driver's-view camera on the chariot. */
+  placeCamera(chariot: ChariotState): void;
   render(): void;
 }
 
@@ -41,9 +42,13 @@ export function createStage(canvas: HTMLCanvasElement, config: GameConfig): Stag
   const eye = config.camera.height;
   const lookahead = config.camera.lookahead;
 
-  function placeCamera(progress: number, offset: number): void {
-    const here = poseAt(track, progress, offset);
-    const ahead = poseAt(track, advance(track, progress, offset, lookahead), offset);
+  function placeCamera(chariot: ChariotState): void {
+    const { progress, lane, lateralVelocity, speed } = chariot;
+    const here = poseAt(track, progress, lane);
+    // Look along the actual direction of travel: when sliding sideways, the
+    // point ahead is shifted across the track by the same proportion.
+    const drift = speed > 0 ? (lateralVelocity / speed) * lookahead : 0;
+    const ahead = poseAt(track, advance(track, progress, lane, lookahead), lane + drift);
     camera.position.set(here.x, eye, here.z);
     camera.lookAt(ahead.x, eye * 0.75, ahead.z);
   }

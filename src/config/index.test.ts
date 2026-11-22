@@ -11,6 +11,7 @@ describe('game.toml defaults', () => {
       race: { laps: num },
       track: { straight_length: num, inner_radius: num, width: num, spina_clearance: num },
       chariot: { cruise_speed: num, start_lane: num },
+      steering: { max_lateral_speed: num, response: num },
       camera: { height: num, fov: num, lookahead: num },
       render: { max_pixel_ratio: num, antialias: bool },
       debug: { show_fps: bool, overlay: bool, start_progress: num },

@@ -95,6 +95,14 @@ def wait_until_rendering(page: Page) -> None:
     expect(page.locator("html")).to_have_attribute("data-ready", "true")
 
 
+def start_race(page: Page) -> None:
+    """Waits for the start screen and taps it."""
+    wait_until_rendering(page)
+    start = page.locator("#start")
+    start.click()
+    expect(start).to_be_hidden()
+
+
 @pytest.fixture
 def console(page: Page) -> ConsoleLog:
     return ConsoleLog(page)
