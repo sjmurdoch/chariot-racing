@@ -14,7 +14,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from playwright.sync_api import ConsoleMessage, Page
+from playwright.sync_api import ConsoleMessage, Page, expect
 
 log = logging.getLogger(__name__)
 
@@ -88,6 +88,11 @@ class ConsoleLog:
             for m in self.messages
             if m.type == kind and not m.text.startswith(BROWSER_GL_NOISE)
         ]
+
+
+def wait_until_rendering(page: Page) -> None:
+    """Waits for the game to render its first frame."""
+    expect(page.locator("html")).to_have_attribute("data-ready", "true")
 
 
 @pytest.fixture

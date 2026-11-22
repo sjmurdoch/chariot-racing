@@ -2,11 +2,7 @@
 
 from playwright.sync_api import Page, expect
 
-from conftest import ConsoleLog
-
-
-def wait_until_rendering(page: Page) -> None:
-    expect(page.locator("html")).to_have_attribute("data-ready", "true")
+from conftest import ConsoleLog, wait_until_rendering
 
 
 def test_loads_and_renders_without_errors(page: Page, console: ConsoleLog) -> None:
