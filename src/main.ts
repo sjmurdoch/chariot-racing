@@ -1,8 +1,9 @@
 import build from 'virtual:build-info';
 import type { BuildInfo } from '../build/build-info';
-import { loadConfig, steeringParams, type GameConfig } from './config';
+import { loadConfig, steeringParams, tiltParams, type GameConfig } from './config';
 import { valueAt } from './config/overrides';
 import { chooseSteer, createKeyboardSteer, createPointerSteer, type SteerReading } from './input/steering';
+import { createTiltSteer, type TiltSteer } from './input/tilt';
 import { createStage } from './scene';
 import { interpolateChariot, startChariot, stepChariot, type ChariotState } from './sim/chariot';
 import { createFixedClock } from './sim/clock';
@@ -21,6 +22,7 @@ declare global {
       /** The chariot as last rendered; see sim/chariot.ts. */
       state: ChariotState;
       input: SteerReading;
+      tilt: Pick<TiltSteer, 'status' | 'angle' | 'neutral'>;
       /** Draw calls in the last rendered frame. */
       drawCalls: number;
     };
@@ -43,6 +45,7 @@ const stage = createStage(canvas, config);
 const steering = steeringParams(config);
 const keyboard = createKeyboardSteer(window);
 const pointer = createPointerSteer(canvas);
+const tilt = createTiltSteer(tiltParams(config));
 
 let previous = startChariot(
   config.debug.start_progress,
@@ -58,6 +61,7 @@ const hooks = {
   started: false,
   state: current,
   input: { steer: 0, source: 'none' } as SteerReading,
+  tilt,
   drawCalls: 0,
 };
 window.chariot = hooks;
@@ -69,6 +73,11 @@ function start(): void {
   if (hooks.started) return;
   hooks.started = true;
   startButton.hidden = true;
+  // Must run inside the tap: iOS only prompts for motion access then.
+  void tilt.enable().then((status) => {
+    console.debug('tilt steering %s', status);
+    if (status === 'granted') tilt.calibrate();
+  });
 }
 startButton.addEventListener('click', start);
 window.addEventListener('keydown', (event) => {
@@ -88,6 +97,12 @@ const clock = createFixedClock();
 const stats = createFrameStats();
 let lastTime: number | undefined;
 
+function describeTilt(): string {
+  const angle = tilt.angle === null ? '-' : `${tilt.angle.toFixed(1)}°`;
+  const neutral = tilt.neutral === null ? '-' : `${tilt.neutral.toFixed(1)}°`;
+  return `${tilt.status}, angle ${angle}, neutral ${neutral}`;
+}
+
 function snapshot(): OverlaySnapshot {
   gpu ??= describeGpu(stage.renderer.getContext());
   const info = stage.renderer.info.render;
@@ -106,7 +121,10 @@ function snapshot(): OverlaySnapshot {
     devicePixelRatio: window.devicePixelRatio,
     renderPixelRatio: stage.renderer.getPixelRatio(),
     gpu,
-    extra: [['input', `${hooks.input.source} ${hooks.input.steer.toFixed(2)}`]],
+    extra: [
+      ['input', `${hooks.input.source} ${hooks.input.steer.toFixed(2)}`],
+      ['tilt', describeTilt()],
+    ],
     overrides,
   };
 }
@@ -116,7 +134,11 @@ stage.renderer.setAnimationLoop((now) => {
   lastTime = now;
   const steps = clock.tick(elapsed);
 
-  hooks.input = chooseSteer({ keyboard: keyboard.read(), touch: pointer.read() });
+  hooks.input = chooseSteer({
+    keyboard: keyboard.read(),
+    touch: pointer.read(),
+    tilt: tilt.read(),
+  });
   if (hooks.started) {
     for (let i = 0; i < steps; i++) {
       previous = current;

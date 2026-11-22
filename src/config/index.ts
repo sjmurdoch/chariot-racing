@@ -1,4 +1,5 @@
 import defaults from '../../config/game.toml';
+import type { TiltParams } from '../input/tilt';
 import type { SteeringParams } from '../sim/chariot';
 import type { TrackSpec } from '../sim/track';
 import { applyOverrides, queryValues, type ConfigTree } from './overrides';
@@ -13,6 +14,7 @@ export interface GameConfig extends ConfigTree {
   };
   chariot: { cruise_speed: number; start_lane: number };
   steering: { max_lateral_speed: number; response: number };
+  tilt: { full_lock: number; deadzone: number; invert: boolean };
   camera: { height: number; fov: number; lookahead: number };
   render: { max_pixel_ratio: number; antialias: boolean };
   debug: { show_fps: boolean; overlay: boolean; start_progress: number };
@@ -41,5 +43,14 @@ export function steeringParams(config: GameConfig): SteeringParams {
   return {
     maxLateralSpeed: config.steering.max_lateral_speed,
     response: config.steering.response,
+  };
+}
+
+/** The tilt steering described by the config. */
+export function tiltParams(config: GameConfig): TiltParams {
+  return {
+    fullLock: config.tilt.full_lock,
+    deadzone: config.tilt.deadzone,
+    invert: config.tilt.invert,
   };
 }

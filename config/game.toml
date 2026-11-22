@@ -36,6 +36,15 @@ max_lateral_speed = 7
 # feels heavier; lower feels twitchier.
 response = 0.15
 
+[tilt]
+# Turning the phone like a steering wheel, held in landscape.
+# Wheel angle in degrees that gives full steering lock.
+full_lock = 25
+# Wheel angles below this many degrees count as straight ahead.
+deadzone = 2
+# Reverse the steering direction, if tilting right steers left.
+invert = false
+
 [camera]
 # Driver's eye height above the sand, in metres.
 height = 2.1

@@ -12,6 +12,7 @@ describe('game.toml defaults', () => {
       track: { straight_length: num, inner_radius: num, width: num, spina_clearance: num },
       chariot: { cruise_speed: num, start_lane: num },
       steering: { max_lateral_speed: num, response: num },
+      tilt: { full_lock: num, deadzone: num, invert: bool },
       camera: { height: num, fov: num, lookahead: num },
       render: { max_pixel_ratio: num, antialias: bool },
       debug: { show_fps: bool, overlay: bool, start_progress: num },
@@ -35,6 +36,12 @@ describe('game.toml defaults', () => {
       (race.laps * lapLength(trackSpec(DEFAULT_CONFIG), chariot.start_lane)) / chariot.cruise_speed;
     expect(seconds).toBeGreaterThan(90);
     expect(seconds).toBeLessThan(150);
+  });
+});
+
+describe('tilt defaults', () => {
+  it('reaches full lock beyond the deadzone', () => {
+    expect(DEFAULT_CONFIG.tilt.full_lock).toBeGreaterThan(DEFAULT_CONFIG.tilt.deadzone);
   });
 });
 
