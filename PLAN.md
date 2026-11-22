@@ -9,7 +9,7 @@ A simple, pick-up-and-play 3D chariot race in the Circus Maximus. The primary pl
 | Topic | Decision |
 |---|---|
 | Core loop | Steering is the only control. The racing line decides the winner: cutting tight around the turning posts (*metae*) saves distance but risks a crash. Slipstreaming behind rivals gives a speed boost; bumping rivals sideways adds tactics. |
-| Crashes | Time penalty: the chariot stumbles and slows for about 2 seconds, then continues. Hitting wreckage (*naufragia*) works the same way. |
+| Crashes | Hitting the spina or the wall stops the chariot and knocks it clear, pointing away from what it hit; it then accelerates back to speed (about 4 seconds). Hitting wreckage (*naufragia*) will work the same way. |
 | Race length | 7 laps (historical), on a compressed track tuned for about 2 minutes per race. |
 | Field | 4 chariots: the player plus 3 AI rivals, one per faction (Red/*Russata*, White/*Albata*, Blue/*Veneta*, Green/*Prasina*). The player picks a faction. |
 | Progression | Quick race plus a table of local best times and placings, stored in `localStorage`. Difficulty levels for the AI. No career mode yet. |
@@ -48,7 +48,7 @@ Each milestone is a small, playable, tested increment.
 1. ✅ **Scaffold:** Vite + TypeScript + Three.js project, an empty scene, TOML config loading, Vitest and the Playwright (uv) harness, CI running the tests.
 2. ✅ **Track:** a stadium-shaped track generated in code, with the spina, the metae and sand. A camera driving a fixed racing line around it. (Both ends are semicircular for now; the flatter carceres end arrives with the starting gates in milestone 6. A plain obelisk is already on the spina.)
 3. ✅ **Steering:** the chariot has its own heading, so the player must steer round each turn or run wide into the wall. The player's chariot with forward speed and lateral steering. Keyboard, touch-halves and tilt input (with permission prompt and calibration). Driver's-view camera. Also added: a tap-to-race start screen, a debug overlay with the embedded commit, and publishing to GitHub Pages from CI.
-4. **Core loop:** distance advantage from the inside line, collisions with the metae and the crash time penalty, the 7-lap count, finish detection.
+4. **Core loop:** distance advantage from the inside line, collisions with the metae and the crash time penalty, the 7-lap count, finish detection. Done so far: a crash at the spina or the wall stops the chariot and knocks it clear (no scraping along), then it accelerates back up to speed; races start from a standstill.
 5. **Rivals:** 3 AI chariots following racing lines with personality and skill levels. Slipstreaming, side bumping, wreckage. Edge indicators.
 6. **Race flow:** start screen (faction and difficulty), staggered carceres with the mappa drop, dolphin and egg lap counters, results with the palm branch, local best times.
 7. **Presentation:** horses with simple animation, crowd stands, obelisk, Web Audio sound effects, Latin touches in the interface.
