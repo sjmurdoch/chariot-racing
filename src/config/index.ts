@@ -13,7 +13,7 @@ export interface GameConfig extends ConfigTree {
   chariot: { cruise_speed: number; start_lane: number };
   camera: { height: number; fov: number; lookahead: number };
   render: { max_pixel_ratio: number; antialias: boolean };
-  debug: { show_fps: boolean; start_progress: number };
+  debug: { show_fps: boolean; overlay: boolean; start_progress: number };
 }
 
 /** The settings from config/game.toml, with build-time environment overrides. */

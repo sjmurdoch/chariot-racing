@@ -6,6 +6,7 @@ import {
   envValues,
   flattenKeys,
   queryValues,
+  valueAt,
   type ConfigTree,
 } from './overrides';
 
@@ -81,6 +82,19 @@ describe('applyOverrides', () => {
   it('does not treat a table name as a setting', () => {
     const result = applyOverrides(base, { race: '3' }, 'URL');
     expect(result.config).toEqual(base);
+  });
+});
+
+describe('valueAt', () => {
+  it('reads leaf settings by dotted key', () => {
+    expect(valueAt(base, 'race.laps')).toBe(7);
+    expect(valueAt(base, 'render.antialias')).toBe(true);
+  });
+
+  it('returns undefined for tables and missing keys', () => {
+    expect(valueAt(base, 'race')).toBeUndefined();
+    expect(valueAt(base, 'race.laps.extra')).toBeUndefined();
+    expect(valueAt(base, 'nope.nothing')).toBeUndefined();
   });
 });
 

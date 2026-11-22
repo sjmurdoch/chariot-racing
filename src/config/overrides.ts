@@ -59,6 +59,16 @@ export function coerce(raw: string, like: Scalar): Scalar | undefined {
   }
 }
 
+/** Reads the value at a dotted key, or undefined if there is none. */
+export function valueAt(tree: ConfigTree, key: string): Scalar | undefined {
+  let node: Scalar | ConfigTree | undefined = tree;
+  for (const part of key.split('.')) {
+    if (typeof node !== 'object') return undefined;
+    node = node[part];
+  }
+  return typeof node === 'object' ? undefined : node;
+}
+
 function setPath(tree: ConfigTree, key: string, value: Scalar): void {
   const parts = key.split('.');
   let node = tree;

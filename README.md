@@ -41,3 +41,13 @@ Game settings live in [config/game.toml](config/game.toml). Each setting can be 
 | URL query parameter `<table>.<key>` | runtime | `?race.laps=3` |
 
 Later sources win. A value of the wrong type, or an unknown setting name, produces a warning (at build time, or in the browser console) and the earlier value is kept.
+
+## Debug overlay
+
+The debug overlay shows the build (commit, branch and build time), frame rate, draw calls, race state, screen size, GPU and any settings changed from the defaults. Open it in any of these ways:
+
+- press the backtick key (`` ` ``)
+- tap the screen with three fingers
+- add `?debug.overlay=1` to the URL
+
+The commit is embedded at build time: from `GITHUB_SHA` when built by GitHub Actions, or from git locally, with `-dirty` added when there are uncommitted changes. Include the overlay in bug reports, for example as a screenshot.

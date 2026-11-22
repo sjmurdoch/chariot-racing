@@ -13,7 +13,7 @@ describe('game.toml defaults', () => {
       chariot: { cruise_speed: num, start_lane: num },
       camera: { height: num, fov: num, lookahead: num },
       render: { max_pixel_ratio: num, antialias: bool },
-      debug: { show_fps: bool, start_progress: num },
+      debug: { show_fps: bool, overlay: bool, start_progress: num },
     });
   });
 

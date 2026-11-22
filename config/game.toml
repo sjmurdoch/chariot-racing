@@ -46,6 +46,9 @@ antialias = true
 [debug]
 # Show a frames-per-second counter.
 show_fps = false
+# Show the debug overlay (build, performance, race state) at start-up. It can
+# also be toggled with the backtick key or a three-finger tap.
+overlay = false
 # Where on the track to start, in segments: 0 is the start line, 1 the far
 # turn, 2 the back straight and 3 the near turn. Handy for testing turns.
 start_progress = 0.0
