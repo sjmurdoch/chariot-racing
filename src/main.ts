@@ -17,6 +17,7 @@ import { createFixedClock } from './sim/clock';
 import { FACTIONS, isFactionId, rivalsFor, type FactionId } from './sim/factions';
 import { createRacer, placeOf, stepField, type Racer } from './sim/field';
 import { currentLap, formatTime, ordinal, roman, type RaceState } from './sim/race';
+import { separation } from './sim/pack';
 import { createBrain } from './sim/rival';
 import {
   displayMode,
@@ -28,6 +29,7 @@ import {
   watchOrientation,
 } from './ui/display';
 import { createFrameStats } from './ui/frame-stats';
+import { indicatorFor } from './ui/indicators';
 import { createOverlay, describeGpu, type OverlaySnapshot } from './ui/overlay';
 
 declare global {
@@ -109,6 +111,30 @@ const models = buildChariots(
 );
 models.hide(0); // The player's own chariot is behind the camera.
 stage.scene.add(models.group);
+
+// A marker at the screen edge for each rival beside or behind the player.
+const markers = current.slice(1).map((r) => {
+  const marker = document.createElement('div');
+  marker.className = 'edge-marker';
+  marker.dataset.faction = r.faction;
+  marker.style.color = `#${FACTIONS[r.faction as FactionId].hex.toString(16).padStart(6, '0')}`;
+  marker.hidden = true;
+  document.querySelector('#edge-markers')!.append(marker);
+  return marker;
+});
+
+function updateMarkers(): void {
+  const player = current[0]!.chariot;
+  markers.forEach((marker, k) => {
+    const show = hooks.started && current[0]!.race.phase === 'racing';
+    const mark = show ? indicatorFor(separation(stage.track, player, current[k + 1]!.chariot)) : null;
+    marker.hidden = mark === null;
+    if (!mark) return;
+    marker.dataset.side = mark.side;
+    marker.style.opacity = (0.25 + 0.75 * mark.strength).toFixed(2);
+    marker.style.top = `${(40 + 35 * mark.behind).toFixed(1)}%`;
+  });
+}
 
 const hooks = {
   config,
@@ -312,6 +338,7 @@ stage.renderer.setAnimationLoop((now) => {
   for (let i = 1; i < current.length; i++) {
     models.place(i, interpolateChariot(previous[i]!.chariot, current[i]!.chariot, clock.alpha));
   }
+  updateMarkers();
   hooks.field = current.map((r, i) => ({
     faction: r.faction,
     progress: r.chariot.progress,

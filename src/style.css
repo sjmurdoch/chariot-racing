@@ -296,3 +296,20 @@ html.installed #rotate {
   cursor: pointer;
 }
 
+.edge-marker {
+  position: fixed;
+  width: 14px;
+  height: 64px;
+  border-radius: 999px;
+  pointer-events: none;
+  box-shadow: 0 0 14px 4px currentcolor;
+  background: currentcolor;
+}
+
+.edge-marker[data-side='left'] {
+  left: max(4px, env(safe-area-inset-left));
+}
+
+.edge-marker[data-side='right'] {
+  right: max(4px, env(safe-area-inset-right));
+}
