@@ -53,3 +53,10 @@ def test_enter_races_again_from_the_finish(page: Page) -> None:
     page.wait_for_function("() => window.chariot.race.phase === 'finished'")
     page.keyboard.press("Enter")
     expect(page.locator("#finish")).to_be_hidden()
+
+
+def test_eggs_and_dolphins_count_the_leaders_laps(page: Page) -> None:
+    page.goto("./?rivals.count=0&debug.start_progress=3.95&display.fullscreen=0")
+    start_race(page)
+    assert page.evaluate("() => window.chariot.lapsCounted") == 0
+    page.wait_for_function("() => window.chariot.lapsCounted === 1")

@@ -14,6 +14,7 @@ import { createStage } from './scene';
 import * as THREE from 'three';
 import { buildChariots, type ChariotModels } from './render/chariots';
 import { buildGates } from './render/gates';
+import { buildLapCounters } from './render/lap-counters';
 import { buildWreckage } from './render/wreckage';
 import { interpolateChariot, startChariot, type ChariotState } from './sim/chariot';
 import { createFixedClock } from './sim/clock';
@@ -71,6 +72,7 @@ declare global {
       choices: Choices;
       /** Laps, timing and finish; see sim/race.ts. */
       race: RaceState;
+      lapsCounted: number;
       /** Wreckage on the track; see sim/wreckage.ts. */
       wrecks: Wreck[];
       /** Every chariot, the player first, with its place in the race. */
@@ -164,6 +166,8 @@ function startingWrecks(): Wreck[] {
 const factionHex = (faction: string) => FACTIONS[faction as FactionId].hex;
 const gates = buildGates(stage.track, 4);
 stage.scene.add(gates.group);
+const lapCounters = buildLapCounters(stage.track);
+stage.scene.add(lapCounters.group);
 const wreckage = buildWreckage(stage.track);
 stage.scene.add(wreckage.group);
 const colourOfRacer = (i: number) => factionHex(current[i]?.faction ?? 'albata');
@@ -234,6 +238,8 @@ const hooks = {
   state: startChariot(0, 0),
   race: startRace(),
   wrecks,
+  /** Laps counted off by the eggs and dolphins on the spina (the leader's). */
+  lapsCounted: -1,
   field: [] as { faction: string; progress: number; lane: number; place: number; crashes: number }[],
   input: { steer: 0, source: 'none' } as SteerReading,
   tilt,
@@ -525,6 +531,12 @@ stage.renderer.setAnimationLoop((now) => {
   }
   updateMarkers();
   wreckage.update(wrecks, colourOfRacer);
+  // The eggs and dolphins count the leader's laps.
+  const leaderLaps = Math.max(...current.map((r) => r.race.lapsDone));
+  if (leaderLaps !== hooks.lapsCounted) {
+    hooks.lapsCounted = leaderLaps;
+    lapCounters.show(leaderLaps, config.race.laps);
+  }
   hooks.field = current.map((r, i) => ({
     faction: r.faction,
     progress: r.chariot.progress,
