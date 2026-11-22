@@ -16,7 +16,7 @@ def test_enter_starts_the_race(page: Page) -> None:
     wait_until_rendering(page)
     page.keyboard.press("Enter")
     expect(page.locator("#start")).to_be_hidden()
-    assert page.evaluate("() => window.chariot.started")
+    page.wait_for_function("() => window.chariot.started")
 
 
 def test_arrow_keys_steer(page: Page) -> None:

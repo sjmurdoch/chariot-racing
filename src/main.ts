@@ -13,6 +13,7 @@ import { createTiltSteer, type TiltSteer } from './input/tilt';
 import { createStage } from './scene';
 import * as THREE from 'three';
 import { buildChariots, type ChariotModels } from './render/chariots';
+import { buildGates } from './render/gates';
 import { buildWreckage } from './render/wreckage';
 import { interpolateChariot, startChariot, type ChariotState } from './sim/chariot';
 import { createFixedClock } from './sim/clock';
@@ -27,7 +28,16 @@ import {
   type Difficulty,
 } from './ui/choices';
 import { createRacer, placeOf, stepField, type Racer } from './sim/field';
-import { currentLap, formatTime, ordinal, roman, startRace, type RaceState } from './sim/race';
+import {
+  currentLap,
+  formatTime,
+  ordinal,
+  roman,
+  startRace,
+  startStagger,
+  type RaceState,
+} from './sim/race';
+import { advance } from './sim/track';
 import { separation } from './sim/pack';
 import { createBrain } from './sim/rival';
 import type { Wreck } from './sim/wreckage';
@@ -51,6 +61,7 @@ declare global {
       config: GameConfig;
       build: BuildInfo;
       frames: number;
+      phase: 'menu' | 'gates' | 'racing';
       started: boolean;
       /** True while a touch device is held upright and the rotate prompt shows. */
       paused: boolean;
@@ -114,17 +125,23 @@ let choices: Choices = initialChoices(
   storage,
 );
 
-/** A fresh field on the start line, from a standstill: the player first, then the rivals. */
+/**
+ * A fresh field in the starting gates, from a standstill: the player first,
+ * then the rivals. Outer chariots start a little further forward.
+ */
 function newField(): Racer[] {
   const start = config.debug.start_progress;
   const skill = config.rivals.skill * DIFFICULTIES[choices.difficulty].skill;
   const rivals = rivalsFor(choices.faction, config.rivals.count, skill);
+  const insideLane = Math.min(config.chariot.start_lane, ...rivals.map((r) => r.startLane));
+  const startAt = (lane: number) =>
+    startChariot(advance(stage.track, start, lane, startStagger(lane, insideLane)), lane);
   return [
-    createRacer(choices.faction, startChariot(start, config.chariot.start_lane), chariot),
+    createRacer(choices.faction, startAt(config.chariot.start_lane), chariot),
     ...rivals.map((r) =>
       createRacer(
         r.faction,
-        startChariot(start, r.startLane),
+        startAt(r.startLane),
         { ...chariot, cruiseSpeed: chariot.cruiseSpeed * r.personality.skill },
         createBrain(r.personality),
       ),
@@ -145,6 +162,8 @@ function startingWrecks(): Wreck[] {
 }
 
 const factionHex = (faction: string) => FACTIONS[faction as FactionId].hex;
+const gates = buildGates(stage.track, 4);
+stage.scene.add(gates.group);
 const wreckage = buildWreckage(stage.track);
 stage.scene.add(wreckage.group);
 const colourOfRacer = (i: number) => factionHex(current[i]?.faction ?? 'albata');
@@ -197,10 +216,18 @@ function updateMarkers(): void {
   });
 }
 
+type Phase = 'menu' | 'gates' | 'racing';
+let phase: Phase = 'menu';
+/** Seconds since the gates phase began, or since the mappa dropped. */
+let sincePhase = 0;
+const mappa = document.querySelector<HTMLElement>('#mappa')!;
+
 const hooks = {
   config,
   build,
   frames: 0,
+  /** menu: on the start screen; gates: waiting for the mappa; racing: under way. */
+  phase: phase as Phase,
   started: false,
   paused: false,
   choices,
@@ -223,6 +250,32 @@ function resetField(): void {
   hooks.race = current[0]!.race;
   shownCrashes = 0;
   buildFieldView();
+  gates.setStalls(current.map((r) => r.chariot));
+  phase = 'menu';
+  hooks.phase = phase;
+  hooks.started = false;
+  mappa.hidden = true;
+}
+
+/**
+ * The start: the chariots wait in the starting gates while the magistrate
+ * holds up the mappa; when he drops it, the gates fly open and the race is on.
+ */
+function enterGates(): void {
+  phase = 'gates';
+  hooks.phase = phase;
+  sincePhase = 0;
+  mappa.hidden = false;
+  mappa.classList.remove('dropped');
+  hud.hidden = false;
+}
+
+function dropMappa(): void {
+  phase = 'racing';
+  hooks.phase = phase;
+  hooks.started = true;
+  sincePhase = 0;
+  mappa.classList.add('dropped');
 }
 
 stage.resize();
@@ -284,10 +337,9 @@ function start(): void {
   void tiltReady.then((status) => {
     console.debug('tilt steering %s', status);
     if (status === 'granted') tilt.calibrate();
-    hooks.started = true;
     startScreen.hidden = true;
     startScreen.classList.remove('waiting');
-    hud.hidden = false;
+    enterGates();
   });
 }
 document.querySelector('#race-button')!.addEventListener('click', start);
@@ -348,8 +400,8 @@ function showFinish(): void {
 function raceAgain(): void {
   resetField();
   finish.hidden = true;
-  hud.hidden = false;
   if (tilt.status === 'granted') tilt.calibrate();
+  enterGates();
 }
 document.querySelector('#again')!.addEventListener('click', raceAgain);
 
@@ -357,7 +409,6 @@ document.querySelector('#again')!.addEventListener('click', raceAgain);
 function backToMenu(): void {
   resetField();
   finish.hidden = true;
-  hooks.started = false;
   starting = false;
   startScreen.hidden = false;
 }
@@ -437,7 +488,16 @@ stage.renderer.setAnimationLoop((now) => {
     config.steering.ramp_down,
   );
   hooks.input = digital ? { steer: rampedSteer, source: raw.source } : raw;
-  if (hooks.started && !hooks.paused) {
+  if (phase !== 'menu' && !hooks.paused) {
+    sincePhase += clock.step * steps;
+    if (phase === 'gates' && sincePhase >= config.race.gate_seconds) dropMappa();
+  }
+  if (phase === 'racing') {
+    gates.open(sincePhase);
+    // Once the field is well clear, the gates are no longer needed.
+    if (sincePhase > 8) gates.group.visible = false;
+  }
+  if (phase === 'racing' && !hooks.paused) {
     for (let i = 0; i < steps; i++) {
       const racing = current[0]!.race.phase === 'racing';
       previous = current;

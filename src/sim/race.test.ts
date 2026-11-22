@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { currentLap, finishProgress, formatTime, ordinal, roman, startRace, stepRace } from './race';
+import {
+  currentLap,
+  finishProgress,
+  formatTime,
+  ordinal,
+  roman,
+  startRace,
+  startStagger,
+  stepRace,
+} from './race';
 
 describe('stepRace', () => {
   it('counts time and completed laps while racing', () => {
@@ -80,5 +89,16 @@ describe('ordinal', () => {
     [21, '21st'],
   ])('writes %d as %s', (n, text) => {
     expect(ordinal(n)).toBe(text);
+  });
+});
+
+describe('startStagger', () => {
+  it('starts outer chariots further forward', () => {
+    expect(startStagger(1.5, 1.5)).toBe(0);
+    expect(startStagger(11.5, 1.5)).toBe(5);
+  });
+
+  it('never starts anyone behind the inside chariot', () => {
+    expect(startStagger(1, 1.5)).toBe(0);
   });
 });

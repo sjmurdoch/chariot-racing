@@ -61,4 +61,5 @@ Each milestone is a small, playable, tested increment.
 - Exact compressed track proportions, to be tuned during playtesting in milestone 4.
 - Sources for the historical facts, to be collected and checked in milestone 9.
 - Tilt steering is tested with simulated sensor events only. The direction depends on how iOS reports `window.orientation`, so check on a real iPhone in both landscape directions that turning the phone clockwise steers right; `tilt.invert` reverses it if not. Tune `tilt.full_lock` and `steering.response` on the device at the same time.
+- The starting gates are staggered (outer chariots start up to about 7 m further forward) on the understanding that the carceres stood on a curve so that no stall had an advantage; check this against sources in milestone 9.
 - Scenery dimensions are placeholders to check against sources in milestone 9: obelisk height (24 m), meta cone height (6 m), spina width (12 m, chosen for gameplay).

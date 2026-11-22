@@ -90,6 +90,23 @@ class ConsoleLog:
         ]
 
 
+@pytest.fixture(autouse=True)
+def quick_start(page: Page) -> None:
+    """Starts races without the wait in the starting gates, unless a test sets it.
+
+    Most tests aren't about the start, and the wait for the mappa would add
+    seconds to each of them. Tests of the start pass race.gate_seconds.
+    """
+    original = page.goto
+
+    def goto(url: str, **kwargs):  # noqa: ANN202 - mirrors Page.goto
+        if "race.gate_seconds" not in url:
+            url += ("&" if "?" in url else "?") + "race.gate_seconds=0"
+        return original(url, **kwargs)
+
+    page.goto = goto  # type: ignore[method-assign]
+
+
 def wait_until_rendering(page: Page) -> None:
     """Waits for the game to render its first frame."""
     expect(page.locator("html")).to_have_attribute("data-ready", "true")

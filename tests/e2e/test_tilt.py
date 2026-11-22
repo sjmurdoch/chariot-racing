@@ -130,12 +130,13 @@ def test_race_waits_for_permission_answer(page: Page) -> None:
     )
     page.goto("./")
     wait_until_rendering(page)
+    at_gates = page.evaluate("() => window.chariot.state.progress")
     page.locator("#race-button").click()
     expect(page.locator("#start .waiting-note")).to_be_visible()
     page.wait_for_timeout(500)
     assert not page.evaluate("() => window.chariot.started")
-    assert page.evaluate("() => window.chariot.state.progress") == 0
+    assert page.evaluate("() => window.chariot.state.progress") == at_gates
 
     page.evaluate("() => window.answerPermission('granted')")
     expect(page.locator("#start")).to_be_hidden()
-    page.wait_for_function("() => window.chariot.state.progress > 0.01")
+    page.wait_for_function(f"() => window.chariot.state.progress > {at_gates} + 0.01")

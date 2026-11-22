@@ -18,6 +18,19 @@ export interface RaceState {
   finishTime: number | null;
 }
 
+/**
+ * Metres a chariot starting in `lane` begins ahead of one in `insideLane`.
+ * The starting gates (carceres) stood on a shallow curve so that no stall had
+ * an advantage; here outer chariots start a little further forward, since
+ * their way round the first bend is longer.
+ */
+export function startStagger(lane: number, insideLane: number): number {
+  return STAGGER_PER_METRE * Math.max(0, lane - insideLane);
+}
+
+/** Metres further forward per metre further out at the start. */
+const STAGGER_PER_METRE = 0.5;
+
 export function startRace(): RaceState {
   return { phase: 'racing', elapsed: 0, lapsDone: 0, finishTime: null };
 }

@@ -10,6 +10,9 @@
 [race]
 # Number of laps in a race. Historically seven.
 laps = 7
+# Seconds the chariots wait in the starting gates before the magistrate drops
+# the mappa (the white cloth that started the race).
+gate_seconds = 2.5
 # The player's starting faction on the start screen: russata (Red), albata
 # (White), veneta (Blue) or prasina (Green). The player's choice there is
 # remembered and wins over this, unless it is set in the URL.
