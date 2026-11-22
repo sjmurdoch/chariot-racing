@@ -2,6 +2,8 @@
 
 A simple 3D Roman chariot racing game for the browser, designed first for phones held in landscape. You steer by tilting the phone, or by holding the left or right side of the screen; on desktop, use the arrow keys or A/D. See [PLAN.md](PLAN.md) for the design and milestones.
 
+Play it at <https://sjmurdoch.github.io/chariot-racing/>. Every push to `main` that passes CI is published there automatically.
+
 ## Development
 
 Requires Node.js 24 or later and [uv](https://docs.astral.sh/uv/).
