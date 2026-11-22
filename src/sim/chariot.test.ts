@@ -17,6 +17,7 @@ const steering: ChariotParams = {
   maxHeading: (80 * Math.PI) / 180,
   cruiseSpeed: SPEED,
   acceleration: 6,
+  braking: 5,
   crashSpeed: 0,
   bounceAngle: (15 * Math.PI) / 180,
   crashClearance: 0.5,
@@ -144,6 +145,15 @@ describe('speed', () => {
     expect(start.speed).toBe(0);
     expect(run(start, 0, 1).speed).toBeCloseTo(6);
     expect(run(start, 0, 5).speed).toBe(SPEED);
+  });
+
+  it('brakes gradually to a lower target speed', () => {
+    const stopping = { ...steering, cruiseSpeed: 0 };
+    let s = startChariot(0, 6, SPEED);
+    for (let i = 0; i < 60; i++) s = stepChariot(s, 0, DT, track, stopping);
+    expect(s.speed).toBeCloseTo(SPEED - 5);
+    for (let i = 0; i < 600; i++) s = stepChariot(s, 0, DT, track, stopping);
+    expect(s.speed).toBe(0);
   });
 });
 

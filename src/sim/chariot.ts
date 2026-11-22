@@ -36,6 +36,8 @@ export interface ChariotParams {
   cruiseSpeed: number;
   /** Acceleration up to cruising speed, in m/s². */
   acceleration: number;
+  /** Deceleration when above the target speed (after the finish), in m/s². */
+  braking: number;
   /** Speed straight after a crash, in m/s. */
   crashSpeed: number;
   /** Angle a crash knocks the chariot away from what it hit, in radians. */
@@ -68,7 +70,10 @@ export function stepChariot(
   // Exponential approach: frame-rate independent and never overshoots.
   const blend = 1 - Math.exp(-dt / params.response);
   const turnRate = state.turnRate + (clamped * params.maxTurnRate - state.turnRate) * blend;
-  const speed = Math.min(params.cruiseSpeed, state.speed + params.acceleration * dt);
+  const speed =
+    state.speed < params.cruiseSpeed
+      ? Math.min(params.cruiseSpeed, state.speed + params.acceleration * dt)
+      : Math.max(params.cruiseSpeed, state.speed - params.braking * dt);
 
   // As the track bends left under the chariot, its heading relative to the
   // track swings outwards by exactly the angle the track turns. With no

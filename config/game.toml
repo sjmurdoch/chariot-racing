@@ -31,6 +31,8 @@ start_lane = 6
 # Acceleration from a standstill up to cruising speed, in m/s². At 6 it takes
 # under four seconds, at the start and after a crash.
 acceleration = 6
+# Deceleration when pulling up after the finish, in m/s².
+braking = 5
 
 [crash]
 # Hitting the spina or the outer wall stops the chariot and knocks it clear,

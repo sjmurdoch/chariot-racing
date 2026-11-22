@@ -12,7 +12,7 @@ export interface GameConfig extends ConfigTree {
     width: number;
     spina_clearance: number;
   };
-  chariot: { cruise_speed: number; start_lane: number; acceleration: number };
+  chariot: { cruise_speed: number; start_lane: number; acceleration: number; braking: number };
   crash: { speed: number; bounce_angle: number; clearance: number };
   steering: {
     max_turn_rate: number;
@@ -55,6 +55,7 @@ export function chariotParams(config: GameConfig): ChariotParams {
     maxHeading: config.steering.max_heading * degrees,
     cruiseSpeed: config.chariot.cruise_speed,
     acceleration: config.chariot.acceleration,
+    braking: config.chariot.braking,
     crashSpeed: config.crash.speed,
     bounceAngle: config.crash.bounce_angle * degrees,
     crashClearance: config.crash.clearance,

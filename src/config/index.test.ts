@@ -10,7 +10,7 @@ describe('game.toml defaults', () => {
     expect(DEFAULT_CONFIG).toEqual({
       race: { laps: num },
       track: { straight_length: num, inner_radius: num, width: num, spina_clearance: num },
-      chariot: { cruise_speed: num, start_lane: num, acceleration: num },
+      chariot: { cruise_speed: num, start_lane: num, acceleration: num, braking: num },
       crash: { speed: num, bounce_angle: num, clearance: num },
       steering: {
         max_turn_rate: num,
