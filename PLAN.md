@@ -47,7 +47,7 @@ Each milestone is a small, playable, tested increment.
 
 1. ✅ **Scaffold:** Vite + TypeScript + Three.js project, an empty scene, TOML config loading, Vitest and the Playwright (uv) harness, CI running the tests.
 2. ✅ **Track:** a stadium-shaped track generated in code, with the spina, the metae and sand. A camera driving a fixed racing line around it. (Both ends are semicircular for now; the flatter carceres end arrives with the starting gates in milestone 6. A plain obelisk is already on the spina.)
-3. **Steering:** the player's chariot with forward speed and lateral steering. Keyboard, touch-halves and tilt input (with permission prompt and calibration). Driver's-view camera.
+3. ✅ **Steering:** the player's chariot with forward speed and lateral steering. Keyboard, touch-halves and tilt input (with permission prompt and calibration). Driver's-view camera. Also added: a tap-to-race start screen, a debug overlay with the embedded commit, and publishing to GitHub Pages from CI.
 4. **Core loop:** distance advantage from the inside line, collisions with the metae and the crash time penalty, the 7-lap count, finish detection.
 5. **Rivals:** 3 AI chariots following racing lines with personality and skill levels. Slipstreaming, side bumping, wreckage. Edge indicators.
 6. **Race flow:** start screen (faction and difficulty), staggered carceres with the mappa drop, dolphin and egg lap counters, results with the palm branch, local best times.
@@ -60,4 +60,5 @@ Each milestone is a small, playable, tested increment.
 - Name of the game.
 - Exact compressed track proportions, to be tuned during playtesting in milestone 4.
 - Sources for the historical facts, to be collected and checked in milestone 9.
+- Tilt steering is tested with simulated sensor events only. The direction depends on how iOS reports `window.orientation`, so check on a real iPhone in both landscape directions that turning the phone clockwise steers right; `tilt.invert` reverses it if not. Tune `tilt.full_lock` and `steering.response` on the device at the same time.
 - Scenery dimensions are placeholders to check against sources in milestone 9: obelisk height (24 m), meta cone height (6 m), spina width (12 m, chosen for gameplay).
