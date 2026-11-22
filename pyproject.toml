@@ -1,0 +1,32 @@
+[project]
+name = "chariot-racing-e2e"
+version = "0.1.0"
+description = "End-to-end browser tests for the chariot racing game"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-playwright>=0.7",
+    "ruff>=0.8",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests/e2e"]
+# WebKit is the engine behind every iOS browser, the primary platform.
+addopts = "--browser chromium --browser webkit"
+log_level = "INFO"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "LOG", "G"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["conftest"]
