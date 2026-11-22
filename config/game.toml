@@ -64,6 +64,12 @@ fov = 70
 # How far ahead along the lane the driver looks, in metres.
 lookahead = 14
 
+[display]
+# Go full screen and lock to landscape when the race starts, where the
+# browser allows it (Android, desktop, iPad). iPhones need the game added to
+# the Home Screen for full screen, and can't be locked to landscape.
+fullscreen = true
+
 [render]
 # Upper limit on the device pixel ratio, to protect frame rate on phones.
 max_pixel_ratio = 2

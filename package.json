@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run",
     "test:e2e": "npm run build && uv run pytest",
-    "lint:py": "uv run ruff check tests && uv run ruff format --check tests",
+    "lint:py": "uv run ruff check tests scripts && uv run ruff format --check tests scripts",
     "test": "npm run test:unit && npm run lint:py && npm run test:e2e"
   },
   "dependencies": {

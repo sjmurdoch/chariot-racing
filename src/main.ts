@@ -14,6 +14,12 @@ import { createStage } from './scene';
 import { interpolateChariot, startChariot, stepChariot, type ChariotState } from './sim/chariot';
 import { createFixedClock } from './sim/clock';
 import { lapsCompleted } from './sim/track';
+import {
+  enterFullscreenLandscape,
+  isInstalled,
+  isIPhone,
+  watchOrientation,
+} from './ui/display';
 import { createFrameStats } from './ui/frame-stats';
 import { createOverlay, describeGpu, type OverlaySnapshot } from './ui/overlay';
 
@@ -25,6 +31,8 @@ declare global {
       build: BuildInfo;
       frames: number;
       started: boolean;
+      /** True while a touch device is held upright and the rotate prompt shows. */
+      paused: boolean;
       /** The chariot as last rendered; see sim/chariot.ts. */
       state: ChariotState;
       input: SteerReading;
@@ -65,6 +73,7 @@ const hooks = {
   build,
   frames: 0,
   started: false,
+  paused: false,
   state: current,
   input: { steer: 0, source: 'none' } as SteerReading,
   tilt,
@@ -75,10 +84,16 @@ window.chariot = hooks;
 stage.resize();
 window.addEventListener('resize', stage.resize);
 
+document.querySelector<HTMLElement>('#install-hint')!.hidden = !isIPhone() || isInstalled();
+watchOrientation(document.querySelector<HTMLElement>('#rotate')!, (paused) => {
+  hooks.paused = paused;
+});
+
 function start(): void {
   if (hooks.started) return;
   hooks.started = true;
   startButton.hidden = true;
+  if (config.display.fullscreen) enterFullscreenLandscape();
   // Must run inside the tap: iOS only prompts for motion access then.
   void tilt.enable().then((status) => {
     console.debug('tilt steering %s', status);
@@ -156,11 +171,14 @@ stage.renderer.setAnimationLoop((now) => {
     config.steering.ramp_down,
   );
   hooks.input = digital ? { steer: rampedSteer, source: raw.source } : raw;
-  if (hooks.started) {
+  if (hooks.started && !hooks.paused) {
     for (let i = 0; i < steps; i++) {
       previous = current;
       current = stepChariot(current, hooks.input.steer, clock.step, stage.track, steering);
     }
+  } else {
+    // Hold still: with nothing advancing, don't blend between old steps.
+    previous = current;
   }
 
   hooks.state = interpolateChariot(previous, current, clock.alpha);

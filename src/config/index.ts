@@ -23,6 +23,7 @@ export interface GameConfig extends ConfigTree {
   };
   tilt: { full_lock: number; deadzone: number; invert: boolean };
   camera: { height: number; fov: number; lookahead: number };
+  display: { fullscreen: boolean };
   render: { max_pixel_ratio: number; antialias: boolean };
   debug: { show_fps: boolean; overlay: boolean; start_progress: number };
 }

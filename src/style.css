@@ -91,3 +91,58 @@ body {
   font-size: 14px;
   opacity: 0.85;
 }
+
+#start .hint {
+  font-size: 13px;
+  color: #e8c766;
+}
+
+#start .hint[hidden] {
+  display: none;
+}
+
+#rotate {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 16px;
+  color: #fff8ea;
+  background: #2a180a;
+  font: 18px/1.4 Georgia, 'Times New Roman', serif;
+  text-align: center;
+}
+
+#rotate[hidden] {
+  display: none;
+}
+
+#rotate .phone {
+  width: 44px;
+  height: 76px;
+  border: 3px solid #e8c766;
+  border-radius: 8px;
+  animation: turn-sideways 2s ease-in-out infinite;
+}
+
+@keyframes turn-sideways {
+  0%,
+  20% {
+    transform: rotate(0deg);
+  }
+  60%,
+  100% {
+    transform: rotate(-90deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #rotate .phone {
+    animation: none;
+    transform: rotate(-90deg);
+  }
+}
