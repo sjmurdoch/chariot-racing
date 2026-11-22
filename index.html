@@ -48,13 +48,28 @@
       <span class="hint" id="install-hint" hidden>For full screen, tap Share, then Add to Home Screen.</span>
     </div>
     <div id="finish" hidden>
-      <span class="title">Finis</span>
-      <span class="time" id="finish-time"></span>
-      <span class="detail" id="finish-detail"></span>
-      <div class="buttons">
-        <button type="button" id="again" class="action">Race again</button>
-        <button type="button" id="menu" class="secondary">Choose faction</button>
+      <div class="summary">
+        <svg class="palm" id="palm" hidden viewBox="0 0 60 100" aria-label="Palm branch">
+          <path d="M30 98 C 31 70, 33 40, 30 6" fill="none" stroke="#c9a227" stroke-width="3" stroke-linecap="round" />
+          <g stroke="#6f9a3e" stroke-width="3.2" stroke-linecap="round">
+            <path d="M31 20 L 14 10" /><path d="M31 20 L 47 9" />
+            <path d="M31 32 L 10 23" /><path d="M32 32 L 51 22" />
+            <path d="M31 44 L 9 37" /><path d="M32 44 L 52 36" />
+            <path d="M31 56 L 11 51" /><path d="M32 56 L 50 50" />
+            <path d="M31 68 L 15 65" /><path d="M32 68 L 46 64" />
+          </g>
+        </svg>
+        <span class="title">Finis</span>
+        <span class="time" id="finish-time"></span>
+        <span class="detail" id="finish-detail"></span>
+        <span class="best" id="finish-best"></span>
+        <div class="buttons">
+          <button type="button" id="again" class="action">Race again</button>
+          <button type="button" id="menu" class="secondary">Choose faction</button>
+        </div>
       </div>
+      <ol id="standings" aria-label="Standings"></ol>
+    </div>
     </div>
     <div id="rotate" hidden>
       <span class="phone" aria-hidden="true"></span>

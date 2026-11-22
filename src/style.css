@@ -173,19 +173,23 @@ html.installed #rotate {
   border-radius: 50%;
 }
 
-[data-faction='russata'] .swatch {
+[data-faction='russata'] .swatch,
+.swatch[data-faction='russata'] {
   background: #b3261e;
 }
 
-[data-faction='albata'] .swatch {
+[data-faction='albata'] .swatch,
+.swatch[data-faction='albata'] {
   background: #ece6d8;
 }
 
-[data-faction='veneta'] .swatch {
+[data-faction='veneta'] .swatch,
+.swatch[data-faction='veneta'] {
   background: #2f5d9e;
 }
 
-[data-faction='prasina'] .swatch {
+[data-faction='prasina'] .swatch,
+.swatch[data-faction='prasina'] {
   background: #2f8a3e;
 }
 
@@ -330,15 +334,74 @@ html.installed #rotate {
   position: fixed;
   inset: 0;
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 16px;
+  gap: 12px clamp(16px, 6vw, 56px);
+  padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   color: #fff8ea;
   background: rgb(40 24 10 / 55%);
   font: 18px/1.4 Georgia, 'Times New Roman', serif;
   text-align: center;
+}
+
+#finish .summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+#finish .palm {
+  width: 36px;
+  height: 60px;
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 50%));
+}
+
+#finish .palm[hidden] {
+  display: none;
+}
+
+#finish .best {
+  font-size: 15px;
+  color: #e8c766;
+}
+
+#standings {
+  margin: 0;
+  padding: 10px 16px;
+  list-style: none;
+  border-radius: 10px;
+  background: rgb(40 24 10 / 45%);
+  font-size: 16px;
+  text-align: left;
+}
+
+#standings li {
+  display: grid;
+  grid-template-columns: 2.2em 14px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 2px 0;
+}
+
+#standings li.player {
+  color: #e8c766;
+}
+
+#standings .swatch {
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgb(0 0 0 / 40%);
+  border-radius: 50%;
+}
+
+#standings .when {
+  min-width: 4.5em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.9;
 }
 
 #finish[hidden] {
@@ -346,14 +409,14 @@ html.installed #rotate {
 }
 
 #finish .title {
-  font-size: clamp(28px, 9vh, 60px);
+  font-size: clamp(26px, 9vh, 56px);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   text-shadow: 0 2px 8px rgb(0 0 0 / 50%);
 }
 
 #finish .time {
-  font-size: clamp(22px, 7vh, 40px);
+  font-size: clamp(20px, 7vh, 38px);
   font-variant-numeric: tabular-nums;
 }
 

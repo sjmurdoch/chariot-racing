@@ -28,7 +28,7 @@ import {
   type Choices,
   type Difficulty,
 } from './ui/choices';
-import { createRacer, placeOf, stepField, type Racer } from './sim/field';
+import { createRacer, placeOf, standings, stepField, type Racer } from './sim/field';
 import {
   currentLap,
   formatTime,
@@ -52,6 +52,7 @@ import {
   watchOrientation,
 } from './ui/display';
 import { createFrameStats } from './ui/frame-stats';
+import { recordTime } from './ui/records';
 import { indicatorFor } from './ui/indicators';
 import { createOverlay, describeGpu, type OverlaySnapshot } from './ui/overlay';
 
@@ -73,6 +74,7 @@ declare global {
       /** Laps, timing and finish; see sim/race.ts. */
       race: RaceState;
       lapsCounted: number;
+      lastResult: { place: number; time: number; isBest: boolean } | null;
       /** Wreckage on the track; see sim/wreckage.ts. */
       wrecks: Wreck[];
       /** Every chariot, the player first, with its place in the race. */
@@ -240,6 +242,8 @@ const hooks = {
   wrecks,
   /** Laps counted off by the eggs and dolphins on the spina (the leader's). */
   lapsCounted: -1,
+  /** The player's last finish: place, time and whether it was a best. */
+  lastResult: null as { place: number; time: number; isBest: boolean } | null,
   field: [] as { faction: string; progress: number; lane: number; place: number; crashes: number }[],
   input: { steer: 0, source: 'none' } as SteerReading,
   tilt,
@@ -378,6 +382,7 @@ const hudLap = document.querySelector<HTMLElement>('#hud-lap')!;
 const hudTime = document.querySelector<HTMLElement>('#hud-time')!;
 const hudPlace = document.querySelector<HTMLElement>('#hud-place')!;
 const finish = document.querySelector<HTMLElement>('#finish')!;
+const palm = document.querySelector<SVGElement>('#palm')!;
 const laps = config.race.laps;
 
 function updateHud(): void {
@@ -393,13 +398,65 @@ function showFinish(): void {
   const crashes = current[0]!.chariot.crashes;
   const place = placeOf(current, 0);
   const won = place === 1 && current.length > 1;
+  const time = hooks.race.finishTime ?? 0;
+  // A palm branch for the victor, as given to winning charioteers.
+  palm.toggleAttribute('hidden', !won);
   document.querySelector('#finish .title')!.textContent = won ? 'Victor!' : 'Finis';
-  document.querySelector('#finish-time')!.textContent = formatTime(hooks.race.finishTime ?? 0);
+  document.querySelector('#finish-time')!.textContent = formatTime(time);
   const placing = current.length > 1 ? `${ordinal(place)} of ${current.length} · ` : '';
   document.querySelector('#finish-detail')!.textContent =
     placing + (crashes === 0 ? 'No crashes' : crashes === 1 ? '1 crash' : `${crashes} crashes`);
+  const record = recordTime(storage, laps, choices.difficulty, time);
+  document.querySelector('#finish-best')!.textContent = record.isBest
+    ? record.previous === null
+      ? 'First time on the board'
+      : 'New best time!'
+    : `Best ${formatTime(record.previous!)}`;
+  hooks.lastResult = { place, time, isBest: record.isBest };
+  standingsShown = '';
+  updateStandings();
   hud.hidden = true;
   finish.hidden = false;
+}
+
+let standingsShown = '';
+
+/** Lists every chariot in race order; rivals still racing show their lap. */
+function updateStandings(): void {
+  const rows = standings(current).map((i, k) => {
+    const r = current[i]!;
+    const when =
+      r.race.finishTime === null
+        ? `lap ${roman(currentLap(r.race, laps))}`
+        : formatTime(r.race.finishTime);
+    return { i, place: k + 1, faction: r.faction, when };
+  });
+  const key = JSON.stringify(rows);
+  if (key === standingsShown) return;
+  standingsShown = key;
+  const list = document.querySelector('#standings')!;
+  list.replaceChildren(
+    ...rows.map(({ i, place, faction, when }) => {
+      const li = document.createElement('li');
+      li.className = i === 0 ? 'player' : '';
+      li.dataset.faction = faction;
+      const cells = [
+        ordinal(place),
+        '',
+        FACTIONS[faction as FactionId].name + (i === 0 ? ' (you)' : ''),
+        when,
+      ];
+      const classes = ['place', 'swatch', 'name', 'when'];
+      for (const [k, text] of cells.entries()) {
+        const span = document.createElement('span');
+        span.className = classes[k]!;
+        if (classes[k] === 'swatch') span.dataset.faction = faction;
+        span.textContent = text;
+        li.append(span);
+      }
+      return li;
+    }),
+  );
 }
 
 /** Puts every chariot back on the start line for another race. */
@@ -530,6 +587,7 @@ stage.renderer.setAnimationLoop((now) => {
     models!.place(i, interpolateChariot(previous[i]!.chariot, current[i]!.chariot, clock.alpha));
   }
   updateMarkers();
+  if (!finish.hidden) updateStandings();
   wreckage.update(wrecks, colourOfRacer);
   // The eggs and dolphins count the leader's laps.
   const leaderLaps = Math.max(...current.map((r) => r.race.lapsDone));
