@@ -1,6 +1,6 @@
 import defaults from '../../config/game.toml';
 import type { TiltParams } from '../input/tilt';
-import type { SteeringParams } from '../sim/chariot';
+import type { ChariotParams } from '../sim/chariot';
 import type { TrackSpec } from '../sim/track';
 import { applyOverrides, queryValues, type ConfigTree } from './overrides';
 
@@ -12,7 +12,8 @@ export interface GameConfig extends ConfigTree {
     width: number;
     spina_clearance: number;
   };
-  chariot: { cruise_speed: number; start_lane: number };
+  chariot: { cruise_speed: number; start_lane: number; acceleration: number };
+  crash: { speed: number; bounce_angle: number; clearance: number };
   steering: {
     max_turn_rate: number;
     response: number;
@@ -45,13 +46,18 @@ export function trackSpec(config: GameConfig): TrackSpec {
   };
 }
 
-/** The steering response described by the config. */
-export function steeringParams(config: GameConfig): SteeringParams {
+/** The chariot's handling, speed and crash response described by the config. */
+export function chariotParams(config: GameConfig): ChariotParams {
   const degrees = Math.PI / 180;
   return {
     maxTurnRate: config.steering.max_turn_rate * degrees,
     response: config.steering.response,
     maxHeading: config.steering.max_heading * degrees,
+    cruiseSpeed: config.chariot.cruise_speed,
+    acceleration: config.chariot.acceleration,
+    crashSpeed: config.crash.speed,
+    bounceAngle: config.crash.bounce_angle * degrees,
+    crashClearance: config.crash.clearance,
   };
 }
 

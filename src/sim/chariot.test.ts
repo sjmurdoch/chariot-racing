@@ -5,17 +5,22 @@ import {
   startChariot,
   stepChariot,
   type ChariotState,
-  type SteeringParams,
+  type ChariotParams,
 } from './chariot';
 import { lapLength, laneRadius, poseAt, travelDirection, type TrackSpec } from './track';
 
 const track: TrackSpec = { straightLength: 150, innerRadius: 8, width: 24, spinaClearance: 2 };
-const steering: SteeringParams = {
+const SPEED = 22;
+const steering: ChariotParams = {
   maxTurnRate: Math.PI,
   response: 0.12,
   maxHeading: (80 * Math.PI) / 180,
+  cruiseSpeed: SPEED,
+  acceleration: 6,
+  crashSpeed: 0,
+  bounceAngle: (15 * Math.PI) / 180,
+  crashClearance: 0.5,
 };
-const SPEED = 22;
 const DT = 1 / 60;
 
 type Driver = (s: ChariotState) => number;
@@ -88,9 +93,9 @@ describe('at a turn', () => {
     expect(s.progress).toBeGreaterThan(1);
   });
 
-  it('runs wide to the wall without steering', () => {
-    const end = run(startChariot(1, 6, SPEED), 0, 2);
-    expect(end.lane).toBe(track.width);
+  it('runs wide into the wall without steering', () => {
+    const end = run(startChariot(1, 6, SPEED), 0, 1.5);
+    expect(end.crashes).toBe(1);
   });
 
   it('follows the lane round the turn with steady steering', () => {
@@ -110,8 +115,8 @@ describe('at a turn', () => {
   });
 
   it('cuts into the spina when steering too hard', () => {
-    const end = run(startChariot(1, 4, SPEED), -1, 1.5);
-    expect(end.lane).toBe(0);
+    const end = run(startChariot(1, 4, SPEED), -1, 1);
+    expect(end.crashes).toBeGreaterThanOrEqual(1);
   });
 });
 
@@ -133,6 +138,57 @@ describe('a whole lap', () => {
   });
 });
 
+describe('speed', () => {
+  it('accelerates from a standstill to cruising speed', () => {
+    const start = startChariot(0, 6);
+    expect(start.speed).toBe(0);
+    expect(run(start, 0, 1).speed).toBeCloseTo(6);
+    expect(run(start, 0, 5).speed).toBe(SPEED);
+  });
+});
+
+describe('crashes', () => {
+  /** Steps until the first crash, and returns the state just after it. */
+  function crashInto(state: ChariotState, steer: number): ChariotState {
+    let s = state;
+    for (let i = 0; i < 600 && s.crashes === state.crashes; i++) {
+      s = stepChariot(s, steer, DT, track, steering);
+    }
+    return s;
+  }
+
+  it('stops the chariot and knocks it clear of the wall', () => {
+    const after = crashInto(startChariot(0, 20, SPEED), 1);
+    expect(after.crashes).toBe(1);
+    expect(after.speed).toBe(0);
+    expect(after.lane).toBe(track.width - 0.5);
+    expect(after.heading).toBeCloseTo(-steering.bounceAngle);
+    expect(after.turnRate).toBe(0);
+  });
+
+  it('stops the chariot and knocks it clear of the spina', () => {
+    const after = crashInto(startChariot(0, 3, SPEED), -1);
+    expect(after.speed).toBe(0);
+    expect(after.lane).toBe(0.5);
+    expect(after.heading).toBeCloseTo(steering.bounceAngle);
+  });
+
+  it('pulls away from the wall afterwards, back up to speed', () => {
+    const after = crashInto(startChariot(0, 20, SPEED), 1);
+    const later = run(after, 0, 2);
+    expect(later.crashes).toBe(1);
+    expect(later.lane).toBeLessThan(after.lane);
+    expect(later.speed).toBeCloseTo(12);
+  });
+
+  it('cannot hug the wall: steering into it keeps crashing and stalls', () => {
+    const end = run(startChariot(0, 20, SPEED), 1, 8);
+    expect(end.crashes).toBeGreaterThan(2);
+    // Far less ground covered than the 176 m an unhindered chariot would.
+    expect(end.progress).toBeLessThan(0.5);
+  });
+});
+
 describe('lateralVelocity', () => {
   it('is the sideways part of the forward speed', () => {
     expect(lateralVelocity({ ...startChariot(0, 6, 20), heading: Math.PI / 6 })).toBeCloseTo(10);
@@ -141,14 +197,15 @@ describe('lateralVelocity', () => {
 
 describe('interpolateChariot', () => {
   it('blends between two states', () => {
-    const a = { progress: 1, lane: 4, heading: 0, turnRate: 0, speed: 20 };
-    const b = { progress: 2, lane: 6, heading: 0.2, turnRate: 1, speed: 22 };
+    const a = { progress: 1, lane: 4, heading: 0, turnRate: 0, speed: 20, crashes: 1 };
+    const b = { progress: 2, lane: 6, heading: 0.2, turnRate: 1, speed: 22, crashes: 2 };
     expect(interpolateChariot(a, b, 0.25)).toEqual({
       progress: 1.25,
       lane: 4.5,
       heading: 0.05,
       turnRate: 0.25,
       speed: 20.5,
+      crashes: 2,
     });
   });
 });

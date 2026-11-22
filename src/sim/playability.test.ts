@@ -3,7 +3,7 @@
 // the game) to get round a whole lap without touching the wall or spina.
 
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_CONFIG, steeringParams, trackSpec } from '../config';
+import { DEFAULT_CONFIG, chariotParams, trackSpec } from '../config';
 import { rampSteer } from '../input/steering';
 import { startChariot, stepChariot } from './chariot';
 import { curvature, lapLength } from './track';
@@ -12,14 +12,12 @@ const DT = 1 / 60;
 
 function keyboardLap(targetLane: number) {
   const track = trackSpec(DEFAULT_CONFIG);
-  const steering = steeringParams(DEFAULT_CONFIG);
+  const steering = chariotParams(DEFAULT_CONFIG);
   const { ramp_up, ramp_down } = DEFAULT_CONFIG.steering;
   const speed = DEFAULT_CONFIG.chariot.cruise_speed;
 
   let state = startChariot(0, targetLane, speed);
   let steer = 0;
-  let closestToSpina = Infinity;
-  let closestToWall = Infinity;
   const seconds = (lapLength(track, targetLane) / speed) * 1.05;
 
   for (let i = 0; i < seconds / DT; i++) {
@@ -30,10 +28,8 @@ function keyboardLap(targetLane: number) {
     const key = wanted < -0.2 ? -1 : wanted > 0.2 ? 1 : 0;
     steer = rampSteer(steer, key, DT, ramp_up, ramp_down);
     state = stepChariot(state, steer, DT, track, steering);
-    closestToSpina = Math.min(closestToSpina, state.lane);
-    closestToWall = Math.min(closestToWall, track.width - state.lane);
   }
-  return { state, closestToSpina, closestToWall };
+  return state;
 }
 
 // With nothing pulling the chariot straight, such a player strays about 3 m
@@ -42,11 +38,10 @@ function keyboardLap(targetLane: number) {
 // can be steadier.
 describe('keyboard playability with default settings', () => {
   for (const lane of [5, 8, 14]) {
-    it(`gets round a lap in lane ${lane} m without touching the spina or wall`, () => {
-      const { state, closestToSpina, closestToWall } = keyboardLap(lane);
+    it(`gets round a lap in lane ${lane} m without crashing`, () => {
+      const state = keyboardLap(lane);
+      expect(state.crashes).toBe(0);
       expect(state.progress).toBeGreaterThan(4);
-      expect(closestToSpina).toBeGreaterThan(0);
-      expect(closestToWall).toBeGreaterThan(0);
     });
   }
 });

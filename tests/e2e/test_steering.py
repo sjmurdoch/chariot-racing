@@ -60,18 +60,22 @@ def test_holding_left_half_steers_left(page: Page) -> None:
     page.mouse.up()
 
 
-def test_lane_stays_on_track(page: Page) -> None:
+def test_hitting_the_spina_is_a_crash(page: Page) -> None:
     page.goto("./")
     start_race(page)
     page.keyboard.down("ArrowLeft")
-    page.wait_for_function("() => window.chariot.state.lane === 0")
+    page.wait_for_function("() => window.chariot.state.crashes >= 1")
     page.keyboard.up("ArrowLeft")
-    assert lane(page) == 0
+    state = page.evaluate("() => window.chariot.state")
+    # Knocked clear of the spina rather than left scraping along it.
+    assert state["lane"] > 0
+    expect(page.locator("#crash-flash")).to_have_class("flash")
 
 
-def test_runs_wide_at_a_bend_without_steering(page: Page) -> None:
-    page.goto("./?debug.start_progress=0.97")
+def test_runs_wide_into_the_wall_without_steering(page: Page) -> None:
+    page.goto("./?debug.start_progress=0.9")
     start_race(page)
-    page.wait_for_function("() => window.chariot.state.progress > 1")
-    page.wait_for_function("() => window.chariot.state.lane === window.chariot.config.track.width")
+    page.wait_for_function("() => window.chariot.state.crashes === 1", timeout=15000)
     assert page.evaluate("() => window.chariot.input.source") == "none"
+    width = page.evaluate("() => window.chariot.config.track.width")
+    assert page.evaluate("() => window.chariot.state.lane") < width

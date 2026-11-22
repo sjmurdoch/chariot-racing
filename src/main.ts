@@ -1,6 +1,6 @@
 import build from 'virtual:build-info';
 import type { BuildInfo } from '../build/build-info';
-import { loadConfig, steeringParams, tiltParams, type GameConfig } from './config';
+import { loadConfig, chariotParams, tiltParams, type GameConfig } from './config';
 import { valueAt } from './config/overrides';
 import {
   chooseSteer,
@@ -59,16 +59,13 @@ const startButton = document.querySelector<HTMLButtonElement>('#start')!;
 fps.hidden = !config.debug.show_fps;
 
 const stage = createStage(canvas, config);
-const steering = steeringParams(config);
+const chariot = chariotParams(config);
 const keyboard = createKeyboardSteer(window);
 const pointer = createPointerSteer(canvas);
 const tilt = createTiltSteer(tiltParams(config));
 
-let previous = startChariot(
-  config.debug.start_progress,
-  config.chariot.start_lane,
-  config.chariot.cruise_speed,
-);
+// The race starts from a standstill.
+let previous = startChariot(config.debug.start_progress, config.chariot.start_lane);
 let current = previous;
 
 const hooks = {
@@ -122,6 +119,17 @@ const clock = createFixedClock();
 const stats = createFrameStats();
 let lastTime: number | undefined;
 let rampedSteer = 0;
+let shownCrashes = 0;
+
+const crashFlash = document.querySelector<HTMLElement>('#crash-flash')!;
+
+/** Flashes the screen red, and buzzes phones that support it (not iPhones). */
+function showCrash(): void {
+  crashFlash.classList.remove('flash');
+  void crashFlash.offsetWidth; // Restart the animation.
+  crashFlash.classList.add('flash');
+  navigator.vibrate?.(150);
+}
 
 function describeTilt(): string {
   const angle = tilt.angle === null ? '-' : `${tilt.angle.toFixed(1)}°`;
@@ -142,12 +150,13 @@ function snapshot(): OverlaySnapshot {
     lap: lapsCompleted(hooks.state.progress),
     laps: config.race.laps,
     lane: hooks.state.lane,
-    speed: hooks.started ? hooks.state.speed : 0,
+    speed: hooks.state.speed,
     viewport: { width: window.innerWidth, height: window.innerHeight },
     devicePixelRatio: window.devicePixelRatio,
     renderPixelRatio: stage.renderer.getPixelRatio(),
     gpu,
     extra: [
+      ['crashes', String(hooks.state.crashes)],
       ['input', `${hooks.input.source} ${hooks.input.steer.toFixed(2)}`],
       ['tilt', describeTilt()],
       ['canvas', `${canvas.clientWidth}×${canvas.clientHeight}`],
@@ -182,11 +191,16 @@ stage.renderer.setAnimationLoop((now) => {
   if (hooks.started && !hooks.paused) {
     for (let i = 0; i < steps; i++) {
       previous = current;
-      current = stepChariot(current, hooks.input.steer, clock.step, stage.track, steering);
+      current = stepChariot(current, hooks.input.steer, clock.step, stage.track, chariot);
     }
   } else {
     // Hold still: with nothing advancing, don't blend between old steps.
     previous = current;
+  }
+
+  if (current.crashes !== shownCrashes) {
+    shownCrashes = current.crashes;
+    showCrash();
   }
 
   hooks.state = interpolateChariot(previous, current, clock.alpha);

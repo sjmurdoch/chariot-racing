@@ -28,6 +28,19 @@ spina_clearance = 2
 cruise_speed = 22
 # Starting distance out from the innermost lane, in metres.
 start_lane = 6
+# Acceleration from a standstill up to cruising speed, in m/s². At 6 it takes
+# under four seconds, at the start and after a crash.
+acceleration = 6
+
+[crash]
+# Hitting the spina or the outer wall stops the chariot and knocks it clear,
+# pointing away from what it hit, so it can't scrape along.
+# Speed straight after a crash, in m/s.
+speed = 0
+# Angle, in degrees, the chariot is knocked away from what it hit.
+bounce_angle = 15
+# Distance, in metres, the chariot is knocked clear of what it hit.
+clearance = 0.5
 
 [steering]
 # The chariot has its own heading: steering turns it, and with no steering

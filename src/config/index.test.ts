@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { lapLength, spinaHalfWidth } from '../sim/track';
-import { DEFAULT_CONFIG, loadConfig, steeringParams, trackSpec } from './index';
+import { DEFAULT_CONFIG, loadConfig, chariotParams, trackSpec } from './index';
 
 const num = expect.any(Number);
 const bool = expect.any(Boolean);
@@ -10,7 +10,8 @@ describe('game.toml defaults', () => {
     expect(DEFAULT_CONFIG).toEqual({
       race: { laps: num },
       track: { straight_length: num, inner_radius: num, width: num, spina_clearance: num },
-      chariot: { cruise_speed: num, start_lane: num },
+      chariot: { cruise_speed: num, start_lane: num, acceleration: num },
+      crash: { speed: num, bounce_angle: num, clearance: num },
       steering: {
         max_turn_rate: num,
         response: num,
@@ -48,7 +49,7 @@ describe('game.toml defaults', () => {
 
 describe('steering defaults', () => {
   it('can hold the innermost lane round a turn at cruising speed', () => {
-    const { maxTurnRate } = steeringParams(DEFAULT_CONFIG);
+    const { maxTurnRate } = chariotParams(DEFAULT_CONFIG);
     const needed = DEFAULT_CONFIG.chariot.cruise_speed / DEFAULT_CONFIG.track.inner_radius;
     expect(maxTurnRate).toBeGreaterThan(needed);
     // ...but only just, so the inside line is a real commitment.
