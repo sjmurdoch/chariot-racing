@@ -17,6 +17,7 @@ import { lapsCompleted } from './sim/track';
 import {
   displayMode,
   enterFullscreenLandscape,
+  fitInstalledViewport,
   isInstalled,
   isIPhone,
   safeAreaInsets,
@@ -86,6 +87,7 @@ window.chariot = hooks;
 stage.resize();
 window.addEventListener('resize', stage.resize);
 
+fitInstalledViewport();
 document.querySelector<HTMLElement>('#install-hint')!.hidden = !isIPhone() || isInstalled();
 watchOrientation(document.querySelector<HTMLElement>('#rotate')!, (paused) => {
   hooks.paused = paused;

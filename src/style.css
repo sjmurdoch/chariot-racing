@@ -3,8 +3,6 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  /* Sand, so any sliver the canvas doesn't cover blends into the ground. */
-  background: #c8a165;
   overscroll-behavior: none;
   -webkit-user-select: none;
   user-select: none;
@@ -12,10 +10,28 @@ body {
 }
 
 /*
- * Pinned to all four edges rather than sized with vh/dvh units: in an iPhone
- * Home Screen app those units can stop short of the bottom edge (the home
- * indicator area), leaving a bar of page background.
+ * In an iOS 26 Home Screen app, WebKit stops drawing page content short of
+ * the bottom of the screen (WebKit bug 301108), and only the root background
+ * shows in the strip below. So the root background always matches whatever
+ * fills the screen: sand during play (the bottom of the view is sand), the
+ * start screen's tint over sand, or the rotate prompt's dark brown.
  */
+html {
+  background: #c8a165;
+}
+
+html:has(#start:not([hidden])) {
+  background: #705633;
+}
+
+html:has(#rotate:not([hidden])) {
+  background: #2a180a;
+}
+
+body {
+  background: transparent;
+}
+
 #game {
   position: fixed;
   inset: 0;
@@ -23,6 +39,28 @@ body {
   width: 100%;
   height: 100%;
   touch-action: none;
+}
+
+/*
+ * As a Home Screen app, also make the page as tall as the screen and lay the
+ * full-screen layers out against the page rather than the short viewport.
+ * --app-height is set from the screen size by src/ui/display.ts.
+ */
+html.installed,
+html.installed body {
+  height: var(--app-height, 100%);
+  min-height: var(--app-height, 100%);
+}
+
+html.installed #game,
+html.installed #start,
+html.installed #rotate {
+  position: absolute;
+  inset: auto;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: var(--app-height, 100%);
 }
 
 #fps {

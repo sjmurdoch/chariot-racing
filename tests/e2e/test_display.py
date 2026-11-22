@@ -149,3 +149,37 @@ def test_overlay_reports_display_details(page: Page) -> None:
     expect(overlay).to_contain_text("canvas    844×390")
     expect(overlay).to_contain_text("insets    0 0 0 0")
     expect(overlay).to_contain_text("mode      browser")
+
+
+def root_background(page: Page) -> str:
+    return page.evaluate("() => getComputedStyle(document.documentElement).backgroundColor")
+
+
+def test_root_background_matches_each_screen(new_context: Callable[..., BrowserContext]) -> None:
+    # The strip iOS leaves below a Home Screen app shows only this colour.
+    page = new_context(viewport=LANDSCAPE, has_touch=True).new_page()
+    page.goto("./?display.fullscreen=0")
+    wait_until_rendering(page)
+    assert root_background(page) == "rgb(112, 86, 51)"  # start screen's tint over sand
+    start_race(page)
+    assert root_background(page) == "rgb(200, 161, 101)"  # sand
+    page.set_viewport_size(PORTRAIT)
+    expect(page.locator("#rotate")).to_be_visible()
+    assert root_background(page) == "rgb(42, 24, 10)"  # rotate prompt
+
+
+def test_home_screen_app_fills_the_screen(new_context: Callable[..., BrowserContext]) -> None:
+    page = new_context(viewport=LANDSCAPE, has_touch=True).new_page()
+    page.add_init_script("Object.defineProperty(navigator, 'standalone', { value: true })")
+    page.goto("./")
+    wait_until_rendering(page)
+    assert page.evaluate("() => document.documentElement.classList.contains('installed')")
+    expected = page.evaluate("() => Math.max(innerHeight, Math.min(screen.width, screen.height))")
+    height = page.evaluate(
+        "() => getComputedStyle(document.documentElement).getPropertyValue('--app-height')"
+    )
+    assert height == f"{expected}px"
+    box = page.locator("#game").bounding_box()
+    assert box is not None
+    assert box["height"] == expected
+    expect(page.locator("#install-hint")).to_be_hidden()

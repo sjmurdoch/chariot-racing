@@ -24,6 +24,41 @@ export function isInstalled(): boolean {
   );
 }
 
+/**
+ * The full screen height, in CSS pixels, for the current orientation. iOS
+ * reports screen.width and screen.height for portrait whichever way the
+ * phone is held, so pick by the window's shape.
+ */
+export function screenHeightFor(
+  screenWidth: number,
+  screenHeight: number,
+  landscape: boolean,
+): number {
+  return landscape ? Math.min(screenWidth, screenHeight) : Math.max(screenWidth, screenHeight);
+}
+
+/**
+ * In a Home Screen app, makes the page as tall as the screen. iOS 26 gives
+ * such apps a viewport shorter than the screen (WebKit bug 301108), which
+ * would leave a strip at the bottom without the game in it.
+ */
+export function fitInstalledViewport(): void {
+  if (!isInstalled()) return;
+  const root = document.documentElement;
+  root.classList.add('installed');
+  const update = () => {
+    const landscape = window.innerWidth > window.innerHeight;
+    const height = Math.max(
+      window.innerHeight,
+      screenHeightFor(screen.width, screen.height, landscape),
+    );
+    root.style.setProperty('--app-height', `${height}px`);
+  };
+  window.addEventListener('resize', update);
+  screen.orientation?.addEventListener?.('change', update);
+  update();
+}
+
 /** How the page is shown: in a browser tab or as a Home Screen app, and whether full screen. */
 export function displayMode(): string {
   const mode = isInstalled() ? 'home screen app' : 'browser';
