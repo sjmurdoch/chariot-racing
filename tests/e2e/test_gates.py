@@ -8,15 +8,24 @@ WITH_GATES = "./?race.gate_seconds=1&display.fullscreen=0"
 
 
 def test_chariots_wait_in_the_gates_until_the_mappa_drops(page: Page) -> None:
-    page.goto(WITH_GATES)
+    # A long enough wait that the checks below happen inside the gates even
+    # on a slow CI runner.
+    page.goto("./?race.gate_seconds=3&display.fullscreen=0")
+    wait_until_rendering(page)
+    page.wait_for_function("() => window.chariot.field.length === 4")
+    # Nothing moves on the start screen, so these are the positions in the gates.
+    at_gates = page.evaluate("() => window.chariot.field.map((r) => r.progress)")
     start_race(page)
-    assert page.evaluate("() => window.chariot.phase") == "gates"
     mappa = page.locator("#mappa")
     expect(mappa).to_be_visible()
     expect(mappa).to_contain_text("Watch for the mappa")
-    at_gates = page.evaluate("() => window.chariot.field.map((r) => r.progress)")
-    page.wait_for_timeout(500)
-    assert page.evaluate("() => window.chariot.field.map((r) => r.progress)") == at_gates
+    page.wait_for_timeout(300)
+    # Read the phase and positions together, so they describe the same moment.
+    phase, progress = page.evaluate(
+        "() => [window.chariot.phase, window.chariot.field.map((r) => r.progress)]"
+    )
+    assert phase == "gates"
+    assert progress == at_gates
     expect(page.locator("#hud-time")).to_have_text("0:00.0")
 
     page.wait_for_function("() => window.chariot.phase === 'racing'")
