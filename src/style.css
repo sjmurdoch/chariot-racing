@@ -212,3 +212,16 @@ html.installed #rotate {
     opacity: 0;
   }
 }
+
+#start .waiting-note {
+  display: none;
+  font-size: 14px;
+}
+
+#start.waiting .waiting-note {
+  display: inline;
+}
+
+#start.waiting .action {
+  opacity: 0.4;
+}

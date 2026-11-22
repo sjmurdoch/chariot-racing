@@ -90,20 +90,31 @@ watchOrientation(document.querySelector<HTMLElement>('#rotate')!, (paused) => {
   hooks.paused = paused;
 });
 
+let starting = false;
+
+/**
+ * Handles the start tap or key press. The race itself begins only once the
+ * player has answered the motion permission prompt (on iOS), so the chariot
+ * doesn't set off while the prompt is still on screen.
+ */
 function start(): void {
-  if (hooks.started) return;
-  hooks.started = true;
-  startButton.hidden = true;
+  if (starting) return;
+  starting = true;
+  startButton.classList.add('waiting');
+  // Ask for motion access first and synchronously, inside the tap: iOS only
+  // prompts in response to a user gesture.
+  const tiltReady = tilt.enable();
   if (config.display.fullscreen) enterFullscreenLandscape();
-  // Must run inside the tap: iOS only prompts for motion access then.
-  void tilt.enable().then((status) => {
+  void tiltReady.then((status) => {
     console.debug('tilt steering %s', status);
     if (status === 'granted') tilt.calibrate();
+    hooks.started = true;
+    startButton.hidden = true;
   });
 }
 startButton.addEventListener('click', start);
 window.addEventListener('keydown', (event) => {
-  if (!hooks.started && event.code !== 'Backquote') start();
+  if (!starting && event.code !== 'Backquote') start();
 });
 
 const overlay = createOverlay(document.querySelector<HTMLElement>('#overlay')!, config.debug.overlay);

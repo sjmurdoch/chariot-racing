@@ -118,3 +118,24 @@ def test_denied_permission_still_races(page: Page) -> None:
     page.keyboard.down("ArrowRight")
     page.wait_for_function(f"() => window.chariot.state.lane > {START_LANE + 1}")
     page.keyboard.up("ArrowRight")
+
+
+def test_race_waits_for_permission_answer(page: Page) -> None:
+    page.add_init_script(
+        """
+        window.DeviceOrientationEvent ??= class DeviceOrientationEvent extends Event {};
+        window.DeviceOrientationEvent.requestPermission = () =>
+            new Promise((resolve) => { window.answerPermission = resolve; });
+        """
+    )
+    page.goto("./")
+    wait_until_rendering(page)
+    page.locator("#start").click()
+    expect(page.locator("#start")).to_contain_text("Waiting for motion access")
+    page.wait_for_timeout(500)
+    assert not page.evaluate("() => window.chariot.started")
+    assert page.evaluate("() => window.chariot.state.progress") == 0
+
+    page.evaluate("() => window.answerPermission('granted')")
+    expect(page.locator("#start")).to_be_hidden()
+    page.wait_for_function("() => window.chariot.state.progress > 0.01")
