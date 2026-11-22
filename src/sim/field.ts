@@ -1,10 +1,18 @@
-// The whole field: the player and the rivals, stepped together.
+// The whole field: the player and the rivals, stepped together, and any
+// wreckage on the track.
 
 import { stepChariot, type ChariotParams, type ChariotState } from './chariot';
 import { resolveContacts, slipstreamFor } from './pack';
 import { startRace, stepRace, type RaceState } from './race';
 import { aiSteer, planLane, type Brain } from './rival';
 import type { TrackSpec } from './track';
+import {
+  ageWrecks,
+  crashIntoWreckage,
+  wreckFrom,
+  type Wreck,
+  type WreckageParams,
+} from './wreckage';
 
 export interface Racer {
   /** Faction name, such as "prasina". */
@@ -17,11 +25,17 @@ export interface Racer {
   brain?: Brain;
 }
 
+export interface Field {
+  racers: Racer[];
+  wrecks: Wreck[];
+}
+
 export interface FieldParams {
   track: TrackSpec;
   laps: number;
   /** Extra cruising speed at full slipstream, as a fraction (0.08 = 8%). */
   slipstreamBoost: number;
+  wreckage: WreckageParams;
 }
 
 export function createRacer(
@@ -33,17 +47,25 @@ export function createRacer(
   return { faction, chariot, race: startRace(), params, ...(brain ? { brain } : {}) };
 }
 
+/** A field with no wreckage yet. */
+export function createField(racers: Racer[]): Field {
+  return { racers, wrecks: [] };
+}
+
 /**
  * Advances every racer by `dt` seconds. The player steers with
  * `playerSteer`; rivals steer themselves. Racers who have finished pull up.
+ * Fast crashes into the spina or the wall leave wreckage, and running into
+ * someone else's wreckage is a crash.
  */
 export function stepField(
-  field: Racer[],
+  current: Field,
   playerSteer: number,
   dt: number,
   setup: FieldParams,
-): Racer[] {
+): Field {
   const { track, laps } = setup;
+  const field = current.racers;
   const before = field.map((r) => r.chariot);
 
   const moved = field.map((racer, i) => {
@@ -59,13 +81,25 @@ export function stepField(
     return stepChariot(racer.chariot, steer, dt, track, params);
   });
 
-  const settled = resolveContacts(track, moved);
-  return field.map((racer, i) => {
+  // Crashes into the spina or the wall this step, which may leave wreckage;
+  // then crashes into existing wreckage, which don't.
+  const fresh: Wreck[] = [];
+  moved.forEach((chariot, i) => {
+    const wreck = wreckFrom(track, before[i]!, chariot, i, setup.wreckage);
+    if (wreck) fresh.push(wreck);
+  });
+  const settled = resolveContacts(track, moved).map((chariot, i) =>
+    crashIntoWreckage(track, chariot, i, current.wrecks, field[i]!.params),
+  );
+  const wrecks = ageWrecks([...current.wrecks, ...fresh], dt, setup.wreckage);
+
+  const racers = field.map((racer, i) => {
     const chariot = settled[i]!;
     const race = stepRace(racer.race, racer.chariot.progress, chariot.progress, dt, laps);
-    const brain = racer.brain ? planLane(racer.brain, i, settled, track) : undefined;
+    const brain = racer.brain ? planLane(racer.brain, i, settled, track, wrecks) : undefined;
     return { ...racer, chariot, race, ...(brain ? { brain } : {}) };
   });
+  return { racers, wrecks };
 }
 
 /**

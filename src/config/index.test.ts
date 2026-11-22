@@ -14,6 +14,7 @@ describe('game.toml defaults', () => {
       track: { straight_length: num, inner_radius: num, width: num, spina_clearance: num },
       chariot: { cruise_speed: num, start_lane: num, acceleration: num, braking: num },
       crash: { speed: num, bounce_angle: num, clearance: num },
+      wreckage: { lifetime: num, min_speed: num },
       steering: {
         max_turn_rate: num,
         response: num,
@@ -25,7 +26,7 @@ describe('game.toml defaults', () => {
       camera: { height: num, fov: num, lookahead: num },
       display: { fullscreen: bool },
       render: { max_pixel_ratio: num, antialias: bool },
-      debug: { show_fps: bool, overlay: bool, start_progress: num },
+      debug: { show_fps: bool, overlay: bool, start_progress: num, wreck_at: num },
     });
   });
 

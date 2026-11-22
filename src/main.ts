@@ -12,6 +12,7 @@ import {
 import { createTiltSteer, type TiltSteer } from './input/tilt';
 import { createStage } from './scene';
 import { buildChariots } from './render/chariots';
+import { buildWreckage } from './render/wreckage';
 import { interpolateChariot, startChariot, type ChariotState } from './sim/chariot';
 import { createFixedClock } from './sim/clock';
 import { FACTIONS, isFactionId, rivalsFor, type FactionId } from './sim/factions';
@@ -19,6 +20,7 @@ import { createRacer, placeOf, stepField, type Racer } from './sim/field';
 import { currentLap, formatTime, ordinal, roman, type RaceState } from './sim/race';
 import { separation } from './sim/pack';
 import { createBrain } from './sim/rival';
+import type { Wreck } from './sim/wreckage';
 import {
   displayMode,
   enterFullscreenLandscape,
@@ -46,8 +48,10 @@ declare global {
       state: ChariotState;
       /** Laps, timing and finish; see sim/race.ts. */
       race: RaceState;
+      /** Wreckage on the track; see sim/wreckage.ts. */
+      wrecks: Wreck[];
       /** Every chariot, the player first, with its place in the race. */
-      field: { faction: string; progress: number; lane: number; place: number }[];
+      field: { faction: string; progress: number; lane: number; place: number; crashes: number }[];
       input: SteerReading;
       tilt: Pick<TiltSteer, 'status' | 'angle' | 'neutral'>;
       /** Draw calls in the last rendered frame. */
@@ -102,15 +106,26 @@ const fieldSetup = {
   track: stage.track,
   laps: config.race.laps,
   slipstreamBoost: config.rivals.slipstream_boost,
+  wreckage: { lifetime: config.wreckage.lifetime, minSpeed: config.wreckage.min_speed },
 };
+/** Wreckage on the track at the start: none, unless placed for testing. */
+function startingWrecks(): Wreck[] {
+  const at = config.debug.wreck_at;
+  return at >= 0 ? [{ progress: at, lane: 0, owner: -1, age: 0 }] : [];
+}
+
 let previous = newField();
 let current = previous;
+let wrecks: Wreck[] = startingWrecks();
 const models = buildChariots(
   stage.track,
   current.map((r) => FACTIONS[r.faction as FactionId].hex),
 );
 models.hide(0); // The player's own chariot is behind the camera.
 stage.scene.add(models.group);
+const wreckage = buildWreckage(stage.track);
+stage.scene.add(wreckage.group);
+const colourOfRacer = (i: number) => FACTIONS[(current[i]?.faction ?? 'albata') as FactionId].hex;
 
 // A marker at the screen edge for each rival beside or behind the player.
 const markers = current.slice(1).map((r) => {
@@ -144,7 +159,8 @@ const hooks = {
   paused: false,
   state: current[0]!.chariot,
   race: current[0]!.race,
-  field: [] as { faction: string; progress: number; lane: number; place: number }[],
+  wrecks,
+  field: [] as { faction: string; progress: number; lane: number; place: number; crashes: number }[],
   input: { steer: 0, source: 'none' } as SteerReading,
   tilt,
   drawCalls: 0,
@@ -236,6 +252,8 @@ function showFinish(): void {
 /** Puts every chariot back on the start line for another race. */
 function raceAgain(): void {
   previous = current = newField();
+  wrecks = startingWrecks();
+  hooks.wrecks = wrecks;
   hooks.race = current[0]!.race;
   shownCrashes = 0;
   finish.hidden = true;
@@ -319,7 +337,10 @@ stage.renderer.setAnimationLoop((now) => {
     for (let i = 0; i < steps; i++) {
       const racing = current[0]!.race.phase === 'racing';
       previous = current;
-      current = stepField(current, hooks.input.steer, clock.step, fieldSetup);
+      const next = stepField({ racers: current, wrecks }, hooks.input.steer, clock.step, fieldSetup);
+      current = next.racers;
+      wrecks = next.wrecks;
+      hooks.wrecks = wrecks;
       hooks.race = current[0]!.race;
       if (racing && hooks.race.phase === 'finished') showFinish();
     }
@@ -339,11 +360,13 @@ stage.renderer.setAnimationLoop((now) => {
     models.place(i, interpolateChariot(previous[i]!.chariot, current[i]!.chariot, clock.alpha));
   }
   updateMarkers();
+  wreckage.update(wrecks, colourOfRacer);
   hooks.field = current.map((r, i) => ({
     faction: r.faction,
     progress: r.chariot.progress,
     lane: r.chariot.lane,
     place: placeOf(current, i),
+    crashes: r.chariot.crashes,
   }));
   if (!hud.hidden) updateHud();
   stage.placeCamera(hooks.state);

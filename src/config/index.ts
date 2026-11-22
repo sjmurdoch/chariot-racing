@@ -15,6 +15,7 @@ export interface GameConfig extends ConfigTree {
   };
   chariot: { cruise_speed: number; start_lane: number; acceleration: number; braking: number };
   crash: { speed: number; bounce_angle: number; clearance: number };
+  wreckage: { lifetime: number; min_speed: number };
   steering: {
     max_turn_rate: number;
     response: number;
@@ -26,7 +27,7 @@ export interface GameConfig extends ConfigTree {
   camera: { height: number; fov: number; lookahead: number };
   display: { fullscreen: boolean };
   render: { max_pixel_ratio: number; antialias: boolean };
-  debug: { show_fps: boolean; overlay: boolean; start_progress: number };
+  debug: { show_fps: boolean; overlay: boolean; start_progress: number; wreck_at: number };
 }
 
 /** The settings from config/game.toml, with build-time environment overrides. */

@@ -1,8 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { startChariot, type ChariotParams } from './chariot';
-import { createRacer, placeOf, standings, stepField, type FieldParams, type Racer } from './field';
+import {
+  createField,
+  createRacer,
+  placeOf,
+  standings,
+  stepField,
+  type FieldParams,
+  type Racer,
+} from './field';
 import { aiSteer, createBrain, planLane } from './rival';
 import { advance, type TrackSpec } from './track';
+import type { Wreck } from './wreckage';
 
 const track: TrackSpec = { straightLength: 150, innerRadius: 8, width: 24, spinaClearance: 2 };
 const params: ChariotParams = {
@@ -16,7 +25,12 @@ const params: ChariotParams = {
   bounceAngle: (15 * Math.PI) / 180,
   crashClearance: 0.5,
 };
-const setup: FieldParams = { track, laps: 7, slipstreamBoost: 0.08 };
+const setup: FieldParams = {
+  track,
+  laps: 7,
+  slipstreamBoost: 0.08,
+  wreckage: { lifetime: 30, minSpeed: 10 },
+};
 const DT = 1 / 60;
 
 function rival(faction: string, line: number, skill = 1, start = line, progress = 0): Racer {
@@ -28,10 +42,10 @@ function rival(faction: string, line: number, skill = 1, start = line, progress 
   );
 }
 
-function race(field: Racer[], seconds: number): Racer[] {
-  let f = field;
+function race(racers: Racer[], seconds: number): Racer[] {
+  let f = createField(racers);
   for (let i = 0; i < seconds / DT; i++) f = stepField(f, 0, DT, setup);
-  return f;
+  return f.racers;
 }
 
 describe('aiSteer', () => {
@@ -125,5 +139,47 @@ describe('a full field', () => {
     const following = race([holding(0), holding(0.05)], 3)[0]!;
     expect(following.chariot.progress).toBeGreaterThan(alone.chariot.progress);
     expect(following.chariot.speed).toBeGreaterThan(22);
+  });
+});
+
+describe('wreckage in the field', () => {
+  /** Runs a field that starts with `wrecks` already on the track. */
+  function raceWith(racers: Racer[], wrecks: Wreck[], seconds: number) {
+    let f = { racers, wrecks };
+    for (let i = 0; i < seconds / DT; i++) f = stepField(f, 0, DT, setup);
+    return f;
+  }
+  const spinaWreckAt = (progress: number): Wreck => ({ progress, lane: 0, owner: 9, age: 0 });
+
+  it('a rival on the inside line steers round wreckage on a straight', () => {
+    const inside = { ...rival('russata', 2, 1, 2, 0.3), chariot: startChariot(0.3, 2, 22) };
+    const f = raceWith([inside], [spinaWreckAt(0.7)], 4);
+    expect(f.racers[0]!.chariot.crashes).toBe(0);
+    expect(f.racers[0]!.chariot.progress).toBeGreaterThan(0.8);
+  });
+
+  it('a rival on the inside line steers round wreckage in a bend', () => {
+    const inside = { ...rival('russata', 2, 1, 2, 0.6), chariot: startChariot(0.6, 2, 22) };
+    const f = raceWith([inside], [spinaWreckAt(1.4)], 6);
+    expect(f.racers[0]!.chariot.crashes).toBe(0);
+    expect(f.racers[0]!.chariot.progress).toBeGreaterThan(1.6);
+  });
+
+  it('a chariot that does not steer crashes into wreckage, leaving none of its own', () => {
+    const holding = createRacer('prasina', startChariot(0.3, 2, 22), params);
+    const f = raceWith([holding], [spinaWreckAt(0.5)], 2);
+    expect(f.racers[0]!.chariot.crashes).toBe(1);
+    expect(f.wrecks).toHaveLength(1);
+  });
+
+  it('a fast crash into the wall leaves wreckage, which is cleared away later', () => {
+    const swerving = createRacer('prasina', { ...startChariot(0.3, 20, 22), heading: 0.5 }, params);
+    let f = raceWith([swerving], [], 1);
+    expect(f.racers[0]!.chariot.crashes).toBe(1);
+    expect(f.wrecks).toHaveLength(1);
+    expect(f.wrecks[0]!.lane).toBe(track.width);
+    // On an empty track (no new crashes), the wreckage is cleared after 30 s.
+    expect(raceWith([], f.wrecks, 28).wrecks).toHaveLength(1);
+    expect(raceWith([], f.wrecks, 30).wrecks).toHaveLength(0);
   });
 });

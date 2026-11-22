@@ -5,6 +5,7 @@
 import type { ChariotParams, ChariotState } from './chariot';
 import { CHARIOT_LENGTH, CHARIOT_WIDTH, separation } from './pack';
 import { advance, curvature, type TrackSpec } from './track';
+import { clearOf, openSide, type Wreck } from './wreckage';
 
 export interface Personality {
   /** Preferred distance out from the inside line, in metres. */
@@ -27,6 +28,10 @@ const PASSING_OFFSET = 3.6;
 const MARGIN = 1.2;
 /** Room a driver leaves to a chariot alongside, centre to centre, in metres. */
 const ROOM = CHARIOT_WIDTH + 0.6;
+/** How far ahead a driver watches for wreckage, in metres. */
+const WRECK_LOOK_AHEAD = 45;
+/** Extra room a driver leaves round wreckage, in metres. */
+const WRECK_MARGIN = 0.8;
 /** Seconds ahead a driver anticipates the start or end of a bend. */
 const ANTICIPATE = 0.15;
 
@@ -60,6 +65,33 @@ export function aiSteer(
  * their plan on the straights.
  */
 export function planLane(
+  brain: Brain,
+  me: number,
+  chariots: ChariotState[],
+  track: TrackSpec,
+  wrecks: Wreck[] = [],
+): Brain {
+  const planned = planAroundTraffic(brain, me, chariots, track);
+  return avoidWreckage(planned, chariots[me]!, track, wrecks);
+}
+
+/**
+ * Steers wide of wreckage coming up, in the bends too: wreckage doesn't move,
+ * so a driver commits to going round it well before reaching it.
+ */
+function avoidWreckage(brain: Brain, self: ChariotState, track: TrackSpec, wrecks: Wreck[]): Brain {
+  let target = brain.targetLane;
+  for (const wreck of wrecks) {
+    const along = separation(track, self, { ...self, progress: wreck.progress, lane: wreck.lane }).along;
+    if (along < -2 || along > WRECK_LOOK_AHEAD) continue;
+    const clear = clearOf(track, wreck, WRECK_MARGIN);
+    const blocked = openSide(track, wreck) === 1 ? target < clear : target > clear;
+    if (blocked) target = clear;
+  }
+  return target === brain.targetLane ? brain : { ...brain, targetLane: target };
+}
+
+function planAroundTraffic(
   brain: Brain,
   me: number,
   chariots: ChariotState[],

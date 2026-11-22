@@ -100,15 +100,13 @@ export function stepChariot(
   // knocked clear, pointing away from what it hit, so it can't scrape along.
   if (lane <= 0 || lane >= track.width) {
     const intoWall = lane >= track.width;
-    return {
-      progress,
-      lane: intoWall ? track.width - params.crashClearance : params.crashClearance,
-      heading: intoWall ? -params.bounceAngle : params.bounceAngle,
-      turnRate: 0,
-      speed: params.crashSpeed,
-      crashes: state.crashes + 1,
-      bumpCooldown: Math.max(0, state.bumpCooldown - dt),
-    };
+    const crashed = crashAgainst(
+      { ...state, progress, bumpCooldown: Math.max(0, state.bumpCooldown - dt) },
+      intoWall ? track.width : 0,
+      intoWall ? -1 : 1,
+      params,
+    );
+    return crashed;
   }
 
   let heading = state.heading + steered + bend;
@@ -121,6 +119,27 @@ export function stepChariot(
     speed,
     crashes: state.crashes,
     bumpCooldown: Math.max(0, state.bumpCooldown - dt),
+  };
+}
+
+/**
+ * A crash against something at `obstacleLane`: the chariot stops dead and
+ * is knocked `params.crashClearance` metres clear of it towards `side`
+ * (+1 outwards, -1 inwards), pointing away from it.
+ */
+export function crashAgainst(
+  state: ChariotState,
+  obstacleLane: number,
+  side: 1 | -1,
+  params: ChariotParams,
+): ChariotState {
+  return {
+    ...state,
+    lane: obstacleLane + side * params.crashClearance,
+    heading: side * params.bounceAngle,
+    turnRate: 0,
+    speed: params.crashSpeed,
+    crashes: state.crashes + 1,
   };
 }
 

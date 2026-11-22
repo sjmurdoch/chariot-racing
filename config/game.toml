@@ -56,6 +56,14 @@ bounce_angle = 15
 # Distance, in metres, the chariot is knocked clear of what it hit.
 clearance = 0.5
 
+[wreckage]
+# A crash into the spina or the wall at speed leaves wreckage (naufragium)
+# against it; running into wreckage is a crash too.
+# Seconds before wreckage is cleared away.
+lifetime = 30
+# Slowest crash, in m/s, that leaves wreckage.
+min_speed = 10
+
 [steering]
 # The chariot has its own heading: steering turns it, and with no steering
 # it goes in a straight line. At a bend the player must steer round or run
@@ -112,3 +120,6 @@ overlay = false
 # Where on the track to start, in segments: 0 is the start line, 1 the far
 # turn, 2 the back straight and 3 the near turn. Handy for testing turns.
 start_progress = 0.0
+# Place wreckage against the spina at this point round the track (in
+# segments, as start_progress) when the race starts; negative for none.
+wreck_at = -1.0
