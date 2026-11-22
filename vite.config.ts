@@ -1,10 +1,11 @@
 import { defineConfig } from 'vitest/config';
+import { buildInfo } from './build/build-info.ts';
 import { tomlConfig } from './build/toml-config.ts';
 
 export default defineConfig({
   // Relative asset paths, so the build works under a GitHub Pages subpath.
   base: './',
-  plugins: [tomlConfig()],
+  plugins: [tomlConfig(), buildInfo()],
   build: {
     target: 'es2022',
     // Three.js alone is about 530 kB minified (130 kB gzipped), within budget.
