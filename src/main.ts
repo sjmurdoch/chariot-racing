@@ -13,7 +13,14 @@ import { createTiltSteer, type TiltSteer } from './input/tilt';
 import { createStage } from './scene';
 import { interpolateChariot, startChariot, stepChariot, type ChariotState } from './sim/chariot';
 import { createFixedClock } from './sim/clock';
-import { lapsCompleted } from './sim/track';
+import {
+  currentLap,
+  formatTime,
+  roman,
+  startRace,
+  stepRace,
+  type RaceState,
+} from './sim/race';
 import {
   displayMode,
   enterFullscreenLandscape,
@@ -38,6 +45,8 @@ declare global {
       paused: boolean;
       /** The chariot as last rendered; see sim/chariot.ts. */
       state: ChariotState;
+      /** Laps, timing and finish; see sim/race.ts. */
+      race: RaceState;
       input: SteerReading;
       tilt: Pick<TiltSteer, 'status' | 'angle' | 'neutral'>;
       /** Draw calls in the last rendered frame. */
@@ -75,6 +84,7 @@ const hooks = {
   started: false,
   paused: false,
   state: current,
+  race: startRace(),
   input: { steer: 0, source: 'none' } as SteerReading,
   tilt,
   drawCalls: 0,
@@ -110,6 +120,7 @@ function start(): void {
     if (status === 'granted') tilt.calibrate();
     hooks.started = true;
     startButton.hidden = true;
+    hud.hidden = false;
   });
 }
 startButton.addEventListener('click', start);
@@ -133,6 +144,46 @@ let rampedSteer = 0;
 let shownCrashes = 0;
 
 const crashFlash = document.querySelector<HTMLElement>('#crash-flash')!;
+const hud = document.querySelector<HTMLElement>('#hud')!;
+const hudLap = document.querySelector<HTMLElement>('#hud-lap')!;
+const hudTime = document.querySelector<HTMLElement>('#hud-time')!;
+const finish = document.querySelector<HTMLElement>('#finish')!;
+const laps = config.race.laps;
+/** Once finished, the chariot pulls up rather than racing on. */
+const pullingUp = { ...chariot, cruiseSpeed: 0 };
+
+function updateHud(): void {
+  const lap = `Lap ${roman(currentLap(hooks.race, laps))} of ${roman(laps)}`;
+  const time = formatTime(hooks.race.elapsed);
+  if (hudLap.textContent !== lap) hudLap.textContent = lap;
+  if (hudTime.textContent !== time) hudTime.textContent = time;
+}
+
+function showFinish(): void {
+  const crashes = current.crashes;
+  document.querySelector('#finish-time')!.textContent = formatTime(hooks.race.finishTime ?? 0);
+  document.querySelector('#finish-detail')!.textContent =
+    crashes === 0 ? 'No crashes' : crashes === 1 ? '1 crash' : `${crashes} crashes`;
+  hud.hidden = true;
+  finish.hidden = false;
+}
+
+/** Puts the chariot back on the start line for another race. */
+function raceAgain(): void {
+  previous = current = startChariot(config.debug.start_progress, config.chariot.start_lane);
+  hooks.race = startRace();
+  shownCrashes = 0;
+  finish.hidden = true;
+  hud.hidden = false;
+  if (tilt.status === 'granted') tilt.calibrate();
+}
+document.querySelector('#again')!.addEventListener('click', raceAgain);
+window.addEventListener('keydown', (event) => {
+  if (!finish.hidden && (event.code === 'Enter' || event.code === 'Space')) {
+    event.preventDefault();
+    raceAgain();
+  }
+});
 
 /** Flashes the screen red, and buzzes phones that support it (not iPhones). */
 function showCrash(): void {
@@ -158,7 +209,7 @@ function snapshot(): OverlaySnapshot {
     drawCalls: info.calls,
     triangles: info.triangles,
     progress: hooks.state.progress,
-    lap: lapsCompleted(hooks.state.progress),
+    lap: hooks.race.lapsDone,
     laps: config.race.laps,
     lane: hooks.state.lane,
     speed: hooks.state.speed,
@@ -201,8 +252,17 @@ stage.renderer.setAnimationLoop((now) => {
   hooks.input = digital ? { steer: rampedSteer, source: raw.source } : raw;
   if (hooks.started && !hooks.paused) {
     for (let i = 0; i < steps; i++) {
+      const racing = hooks.race.phase === 'racing';
       previous = current;
-      current = stepChariot(current, hooks.input.steer, clock.step, stage.track, chariot);
+      current = stepChariot(
+        current,
+        racing ? hooks.input.steer : 0,
+        clock.step,
+        stage.track,
+        racing ? chariot : pullingUp,
+      );
+      hooks.race = stepRace(hooks.race, previous.progress, current.progress, clock.step, laps);
+      if (racing && hooks.race.phase === 'finished') showFinish();
     }
   } else {
     // Hold still: with nothing advancing, don't blend between old steps.
@@ -215,6 +275,7 @@ stage.renderer.setAnimationLoop((now) => {
   }
 
   hooks.state = interpolateChariot(previous, current, clock.alpha);
+  if (!hud.hidden) updateHud();
   stage.placeCamera(hooks.state);
   stage.resize();
   stage.render();

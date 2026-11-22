@@ -17,6 +17,10 @@
   <body>
     <canvas id="game" aria-label="Chariot race"></canvas>
     <div id="crash-flash" aria-hidden="true"></div>
+    <div id="hud" hidden>
+      <span id="hud-lap"></span>
+      <span id="hud-time"></span>
+    </div>
     <div id="fps" hidden></div>
     <pre id="overlay" hidden></pre>
     <button id="start" type="button">
@@ -26,6 +30,12 @@
       <span class="help">Tilt to steer, or hold the left or right side of the screen.<br />Keys: ← → or A D.</span>
       <span class="hint" id="install-hint" hidden>For full screen, tap Share, then Add to Home Screen.</span>
     </button>
+    <div id="finish" hidden>
+      <span class="title">Finis</span>
+      <span class="time" id="finish-time"></span>
+      <span class="detail" id="finish-detail"></span>
+      <button type="button" id="again" class="action">Race again</button>
+    </div>
     <div id="rotate" hidden>
       <span class="phone" aria-hidden="true"></span>
       <span>Turn your phone sideways to race</span>
