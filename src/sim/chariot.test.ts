@@ -207,8 +207,8 @@ describe('lateralVelocity', () => {
 
 describe('interpolateChariot', () => {
   it('blends between two states', () => {
-    const a = { progress: 1, lane: 4, heading: 0, turnRate: 0, speed: 20, crashes: 1 };
-    const b = { progress: 2, lane: 6, heading: 0.2, turnRate: 1, speed: 22, crashes: 2 };
+    const a = { progress: 1, lane: 4, heading: 0, turnRate: 0, speed: 20, crashes: 1, bumpCooldown: 0.2 };
+    const b = { progress: 2, lane: 6, heading: 0.2, turnRate: 1, speed: 22, crashes: 2, bumpCooldown: 0.1 };
     expect(interpolateChariot(a, b, 0.25)).toEqual({
       progress: 1.25,
       lane: 4.5,
@@ -216,6 +216,7 @@ describe('interpolateChariot', () => {
       turnRate: 0.25,
       speed: 20.5,
       crashes: 2,
+      bumpCooldown: 0.1,
     });
   });
 });

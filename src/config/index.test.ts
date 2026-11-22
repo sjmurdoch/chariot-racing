@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { isFactionId } from '../sim/factions';
 import { lapLength, spinaHalfWidth } from '../sim/track';
 import { DEFAULT_CONFIG, loadConfig, chariotParams, trackSpec } from './index';
 
@@ -8,7 +9,8 @@ const bool = expect.any(Boolean);
 describe('game.toml defaults', () => {
   it('has every setting with the expected type', () => {
     expect(DEFAULT_CONFIG).toEqual({
-      race: { laps: num },
+      race: { laps: num, faction: expect.any(String) },
+      rivals: { count: num, skill: num, slipstream_boost: num },
       track: { straight_length: num, inner_radius: num, width: num, spina_clearance: num },
       chariot: { cruise_speed: num, start_lane: num, acceleration: num, braking: num },
       crash: { speed: num, bounce_angle: num, clearance: num },
@@ -60,6 +62,13 @@ describe('steering defaults', () => {
 describe('tilt defaults', () => {
   it('reaches full lock beyond the deadzone', () => {
     expect(DEFAULT_CONFIG.tilt.full_lock).toBeGreaterThan(DEFAULT_CONFIG.tilt.deadzone);
+  });
+});
+
+describe('rival defaults', () => {
+  it('races a valid faction against three rivals', () => {
+    expect(isFactionId(DEFAULT_CONFIG.race.faction)).toBe(true);
+    expect(DEFAULT_CONFIG.rivals.count).toBe(3);
   });
 });
 

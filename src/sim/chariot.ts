@@ -23,6 +23,8 @@ export interface ChariotState {
   speed: number;
   /** Number of times the chariot has hit the spina or the outer wall. */
   crashes: number;
+  /** Seconds until another bump with a chariot can cost speed again. */
+  bumpCooldown: number;
 }
 
 export interface ChariotParams {
@@ -47,7 +49,7 @@ export interface ChariotParams {
 }
 
 export function startChariot(progress: number, lane: number, speed = 0): ChariotState {
-  return { progress, lane, heading: 0, turnRate: 0, speed, crashes: 0 };
+  return { progress, lane, heading: 0, turnRate: 0, speed, crashes: 0, bumpCooldown: 0 };
 }
 
 /** Sideways speed across the track, in m/s; positive moves outwards. */
@@ -105,12 +107,21 @@ export function stepChariot(
       turnRate: 0,
       speed: params.crashSpeed,
       crashes: state.crashes + 1,
+      bumpCooldown: Math.max(0, state.bumpCooldown - dt),
     };
   }
 
   let heading = state.heading + steered + bend;
   heading = Math.max(-params.maxHeading, Math.min(params.maxHeading, heading));
-  return { progress, lane, heading, turnRate, speed, crashes: state.crashes };
+  return {
+    progress,
+    lane,
+    heading,
+    turnRate,
+    speed,
+    crashes: state.crashes,
+    bumpCooldown: Math.max(0, state.bumpCooldown - dt),
+  };
 }
 
 /** How far the track direction turns left between two progress values, in radians. */
@@ -133,5 +144,6 @@ export function interpolateChariot(a: ChariotState, b: ChariotState, t: number):
     turnRate: mix(a.turnRate, b.turnRate),
     speed: mix(a.speed, b.speed),
     crashes: b.crashes,
+    bumpCooldown: b.bumpCooldown,
   };
 }

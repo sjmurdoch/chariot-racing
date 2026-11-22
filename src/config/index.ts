@@ -5,7 +5,8 @@ import type { TrackSpec } from '../sim/track';
 import { applyOverrides, queryValues, type ConfigTree } from './overrides';
 
 export interface GameConfig extends ConfigTree {
-  race: { laps: number };
+  race: { laps: number; faction: string };
+  rivals: { count: number; skill: number; slipstream_boost: number };
   track: {
     straight_length: number;
     inner_radius: number;
