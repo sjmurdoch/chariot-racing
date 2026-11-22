@@ -1,0 +1,43 @@
+# Circus Maximus
+
+A simple 3D Roman chariot racing game for the browser, designed first for phones held in landscape. You steer by tilting the phone, or by holding the left or right side of the screen; on desktop, use the arrow keys or A/D. See [PLAN.md](PLAN.md) for the design and milestones.
+
+## Development
+
+Requires Node.js 24 or later and [uv](https://docs.astral.sh/uv/).
+
+```bash
+npm install
+```
+
+```bash
+uv sync
+```
+
+```bash
+uv run playwright install chromium webkit
+```
+
+Run the development server:
+
+```bash
+npm run dev
+```
+
+Run all tests (unit tests, Python lint, production build, then end-to-end tests in Chromium and WebKit):
+
+```bash
+npm test
+```
+
+## Configuration
+
+Game settings live in [config/game.toml](config/game.toml). Each setting can be overridden in two other ways, using consistent names:
+
+| Source | When | Example |
+|---|---|---|
+| `config/game.toml` | defaults | `[race]` `laps = 7` |
+| Environment variable `CHARIOT_<TABLE>_<KEY>` | build time | `CHARIOT_RACE_LAPS=3 npm run build` |
+| URL query parameter `<table>.<key>` | runtime | `?race.laps=3` |
+
+Later sources win. A value of the wrong type, or an unknown setting name, produces a warning (at build time, or in the browser console) and the earlier value is kept.
