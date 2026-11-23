@@ -4,6 +4,7 @@
 
 import * as THREE from 'three';
 import { spinaHalfWidth, type TrackSpec } from '../sim/track';
+import { shadeBase, stoneMaterial } from './stone';
 
 const COLOURS = {
   sand: 0xc8a165,
@@ -101,10 +102,10 @@ function ground(renderer: THREE.WebGLRenderer, extent: number): THREE.Mesh {
   return mesh;
 }
 
-function spina(track: TrackSpec): THREE.Mesh {
+function spina(renderer: THREE.WebGLRenderer, track: TrackSpec): THREE.Mesh {
   const mesh = new THREE.Mesh(
-    extrudeUp(stadiumShape(track.straightLength / 2, spinaHalfWidth(track)), SPINA_HEIGHT),
-    new THREE.MeshLambertMaterial({ color: COLOURS.stone }),
+    shadeBase(extrudeUp(stadiumShape(track.straightLength / 2, spinaHalfWidth(track)), SPINA_HEIGHT)),
+    stoneMaterial(renderer, 0xffffff),
   );
   mesh.name = 'spina';
   return mesh;
@@ -154,15 +155,12 @@ export function outerWallRadius(track: TrackSpec): number {
 }
 
 /** The podium wall around the track, with a hole for the arena. */
-function outerWall(track: TrackSpec): THREE.Mesh {
+function outerWall(renderer: THREE.WebGLRenderer, track: TrackSpec): THREE.Mesh {
   const half = track.straightLength / 2;
   const inner = outerWallRadius(track);
   const shape = stadiumShape(half, inner + WALL_THICKNESS);
   shape.holes.push(stadiumShape(half, inner));
-  const mesh = new THREE.Mesh(
-    extrudeUp(shape, WALL_HEIGHT, 32),
-    new THREE.MeshLambertMaterial({ color: COLOURS.stone }),
-  );
+  const mesh = new THREE.Mesh(shadeBase(extrudeUp(shape, WALL_HEIGHT, 32)), stoneMaterial(renderer, 0xf6f0e6));
   mesh.name = 'outer-wall';
   return mesh;
 }
@@ -212,10 +210,10 @@ export function buildArena(renderer: THREE.WebGLRenderer, track: TrackSpec): THR
   const extent = 2 * (track.straightLength + 2 * outerWallRadius(track));
   arena.add(
     ground(renderer, extent),
-    spina(track),
+    spina(renderer, track),
     metae(track),
     obelisk(),
-    outerWall(track),
+    outerWall(renderer, track),
     wallPosts(track),
     startLine(track),
   );

@@ -12,6 +12,7 @@ import {
   seededRandom,
   stadiumShape,
 } from './arena';
+import { shadeBase, stoneMaterial } from './stone';
 
 const TIERS = 3;
 /** Depth of each tier, front to back, in metres. */
@@ -25,7 +26,8 @@ const TILE_LENGTH = 12;
 /** Spectators per metre of band (two rows deep). */
 const PEOPLE_PER_METRE = 2.4;
 
-const STONE_TIERS = [0xd9cdb6, 0xcfc2aa, 0xc4b69c];
+/** Tints for the tiers' stone, a little darker further back. */
+const STONE_TIERS = [0xf4eee4, 0xe9e2d6, 0xded6c8];
 /** Tunics: mostly undyed wool and linen, with some of each faction's colours. */
 const TUNICS = [
   0xeae3d2, 0xe0d6c0, 0xd8cbb0, 0xb59a74, 0x8c6f4e, 0xeae3d2, 0xe0d6c0, 0xb3261e, 0xece6d8,
@@ -50,9 +52,10 @@ export function buildStands(renderer: THREE.WebGLRenderer, track: TrackSpec): St
     const inner = front + t * TIER_DEPTH;
     const shape = stadiumShape(half, inner + TIER_DEPTH);
     shape.holes.push(stadiumShape(half, inner));
+    // Shaded darker where each tier rises from the one in front.
     const tier = new THREE.Mesh(
-      extrudeUp(shape, WALL_HEIGHT + (t + 1) * TIER_RISE, 32),
-      new THREE.MeshLambertMaterial({ color: STONE_TIERS[t]! }),
+      shadeBase(extrudeUp(shape, WALL_HEIGHT + (t + 1) * TIER_RISE, 32), WALL_HEIGHT + t * TIER_RISE),
+      stoneMaterial(renderer, STONE_TIERS[t]!),
     );
     tier.name = `tier-${t}`;
     group.add(tier);
