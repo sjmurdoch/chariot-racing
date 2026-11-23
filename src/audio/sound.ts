@@ -22,6 +22,8 @@ export interface Sound {
   update(speed: number, cruiseSpeed: number, inTurn: boolean, dt: number): void;
   /** The crowd roars as the mappa drops. */
   roar(): void;
+  /** A blast on the tuba, the straight Roman trumpet sounded at the start. */
+  tuba(): void;
   /** A crash: a thump, splintering, and a gasp from the crowd. */
   crash(): void;
   /** The crowd cheers the finish, louder for a win. */
@@ -163,6 +165,31 @@ export function createSound(volume: number, enabled: boolean): Sound {
     },
     roar() {
       excitement = Math.max(excitement, 1);
+    },
+    tuba() {
+      if (!ctx || !master) return;
+      const now = ctx.currentTime;
+      // Two slightly detuned saws through a low-pass filter: a bright,
+      // brassy note, swelling in and dying away.
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(700, now);
+      filter.frequency.linearRampToValueAtTime(1800, now + 0.15);
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.28, now + 0.06);
+      gain.gain.setValueAtTime(0.28, now + 0.75);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.1);
+      filter.connect(gain).connect(master);
+      for (const detune of [-6, 6]) {
+        const osc = ctx.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(233, now);
+        osc.detune.value = detune;
+        osc.connect(filter);
+        osc.start(now);
+        osc.stop(now + 1.15);
+      }
     },
     crash() {
       if (!ctx) return;

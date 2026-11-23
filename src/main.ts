@@ -13,6 +13,7 @@ import { createTiltSteer, type TiltSteer } from './input/tilt';
 import { createStage } from './scene';
 import * as THREE from 'three';
 import { createSound } from './audio/sound';
+import { DEPARTURES, FACTS, pickFact } from './content/facts';
 import { buildChariots, type ChariotModels } from './render/chariots';
 import { advanceGait, type Gait } from './render/gait';
 import { buildGates } from './render/gates';
@@ -271,8 +272,15 @@ const hooks = {
 };
 window.chariot = hooks;
 
+/** Shows a fact about the real races, checked against a source. */
+function showFact(element: Element): void {
+  const fact = pickFact(Math.random());
+  element.textContent = fact.text;
+}
+
 /** Puts every chariot back on the start line, as the player has chosen. */
 function resetField(): void {
+  showFact(document.querySelector('#start-fact')!);
   previous = current = newField();
   wrecks = startingWrecks();
   hooks.wrecks = wrecks;
@@ -324,8 +332,10 @@ function dropMappa(): void {
   hooks.started = true;
   sincePhase = 0;
   mappa.classList.add('dropped');
+  // The real signals: the dropped mappa and a blast on the tuba. (No spoken
+  // command at the start is recorded.)
+  sound.tuba();
   sound.roar();
-  announce('Ite!', 'Go!');
 }
 
 stage.resize();
@@ -342,6 +352,44 @@ const factionButtons = [...startScreen.querySelectorAll<HTMLButtonElement>('[dat
 const difficultyButtons = [...startScreen.querySelectorAll<HTMLButtonElement>('[data-difficulty]')];
 
 const soundToggle = document.querySelector<HTMLButtonElement>('#sound-toggle')!;
+
+// The About screen: every fact with its source, and where the game departs
+// from history.
+const aboutScreen = document.querySelector<HTMLElement>('#about')!;
+document.querySelector('#about-facts')!.replaceChildren(
+  ...FACTS.map((fact) => {
+    const li = document.createElement('li');
+    const source = document.createElement('a');
+    source.className = 'source';
+    source.href = fact.source.url;
+    source.target = '_blank';
+    source.rel = 'noopener';
+    source.textContent = fact.source.title;
+    li.append(fact.text, source);
+    return li;
+  }),
+);
+document.querySelector('#about-departures')!.replaceChildren(
+  ...DEPARTURES.map((text) => {
+    const li = document.createElement('li');
+    li.textContent = text;
+    return li;
+  }),
+);
+document.querySelector('#about-build')!.textContent =
+  `Version ${build.commit}, built ${build.builtAt.slice(0, 10)}`;
+document.querySelector('#about-button')!.addEventListener('click', () => {
+  aboutScreen.hidden = false;
+  aboutScreen.scrollTop = 0;
+  // Focus Close (for keyboards) without scrolling down to it.
+  document.querySelector<HTMLElement>('#about-close')!.focus({ preventScroll: true });
+});
+document.querySelector('#about-close')!.addEventListener('click', () => {
+  aboutScreen.hidden = true;
+});
+window.addEventListener('keydown', (event) => {
+  if (event.code === 'Escape' && !aboutScreen.hidden) aboutScreen.hidden = true;
+});
 
 // Offline play, and new versions offered on the start screen (never mid-race).
 const updateButton = document.querySelector<HTMLButtonElement>('#update')!;
@@ -411,7 +459,8 @@ function start(): void {
 document.querySelector('#race-button')!.addEventListener('click', start);
 window.addEventListener('keydown', (event) => {
   const onChoice = (event.target as Element | null)?.closest?.('.choice');
-  if (!startScreen.hidden && !starting && event.code === 'Enter' && !onChoice) {
+  const aboutOpen = !document.querySelector<HTMLElement>('#about')!.hidden;
+  if (!startScreen.hidden && !starting && event.code === 'Enter' && !onChoice && !aboutOpen) {
     event.preventDefault();
     start();
   }
@@ -459,6 +508,7 @@ function showFinish(): void {
   // A palm branch for the victor, as given to winning charioteers.
   palm.toggleAttribute('hidden', !won);
   sound.cheer(won);
+  showFact(document.querySelector('#finish-fact')!);
   document.querySelector('#finish .title')!.textContent = won ? 'Victor!' : 'Finis';
   document.querySelector('#finish-time')!.textContent = formatTime(time);
   const placing = current.length > 1 ? `${ordinal(place)} of ${current.length} · ` : '';

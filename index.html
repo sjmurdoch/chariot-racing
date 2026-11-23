@@ -62,8 +62,10 @@
       <div class="start-buttons">
         <button type="button" id="race-button" class="action">Race</button>
         <button type="button" id="sound-toggle" class="toggle" aria-pressed="true">Sound on</button>
+        <button type="button" id="about-button" class="toggle">About</button>
       </div>
       <span class="waiting-note">Waiting for motion access…</span>
+      <span class="fact" id="start-fact"></span>
       <span class="help">Tilt to steer, or hold the left or right side of the screen. Keys: ←&nbsp;→ or A&nbsp;D, Enter to race.</span>
       <span class="hint" id="install-hint" hidden>For full screen, tap Share, then Add to Home Screen.</span>
       <button type="button" id="update" class="toggle" hidden>New version: tap to update</button>
@@ -84,6 +86,7 @@
         <span class="time" id="finish-time"></span>
         <span class="detail" id="finish-detail"></span>
         <span class="best" id="finish-best"></span>
+        <span class="fact" id="finish-fact"></span>
         <div class="buttons">
           <button type="button" id="again" class="action">Race again</button>
           <button type="button" id="menu" class="secondary">Choose faction</button>
@@ -91,6 +94,20 @@
       </div>
       <ol id="standings" aria-label="Standings"></ol>
     </div>
+    </div>
+    <div id="about" hidden role="dialog" aria-modal="true" aria-labelledby="about-title">
+      <div class="about-page">
+        <h2 id="about-title">About the Circus Maximus</h2>
+        <p>
+          The Circus Maximus in Rome held chariot races for over a thousand years. These details of
+          the races, used in the game, have been checked against the sources linked.
+        </p>
+        <ol id="about-facts"></ol>
+        <h3>Where the game departs from history</h3>
+        <ul id="about-departures"></ul>
+        <p class="build" id="about-build"></p>
+        <button type="button" id="about-close" class="action">Close</button>
+      </div>
     </div>
     <div id="rotate" hidden>
       <span class="phone" aria-hidden="true"></span>
