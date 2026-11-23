@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import { trackSpec, type GameConfig } from './config';
 import { buildArena } from './render/arena';
+import { HORIZON, buildSky } from './render/sky';
 import { buildStands } from './render/stands';
 import type { ChariotState } from './sim/chariot';
 import { poseAt, travelDirection, type TrackSpec } from './sim/track';
 
-const SKY = 0x87b5d9;
 const SAND = 0xc8a165;
 
 export interface Stage {
@@ -30,8 +30,11 @@ export function createStage(canvas: HTMLCanvasElement, config: GameConfig): Stag
 
   const track = trackSpec(config);
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(SKY);
-  scene.fog = new THREE.Fog(SKY, 200, 700);
+  // The sky dome and skyline fill the background; distance fades into the
+  // haze at the horizon.
+  scene.background = new THREE.Color(HORIZON);
+  scene.fog = new THREE.Fog(HORIZON, 200, 700);
+  scene.add(buildSky().group);
 
   scene.add(new THREE.HemisphereLight(0xdfefff, SAND, 1.6));
   const sun = new THREE.DirectionalLight(0xfff1d6, 1.8);
