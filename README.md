@@ -6,6 +6,8 @@ Play it at <https://sjmurdoch.github.io/chariot-racing/>. Every push to `main` t
 
 The game is played in landscape. On Android and desktop it goes full screen and locks to landscape when the race starts. iPhone Safari can do neither, so on an iPhone tap Share, then **Add to Home Screen**, and launch it from there for full screen. On any phone, holding it upright pauses the race and asks you to turn it sideways.
 
+Once opened, the game keeps a copy of itself and works offline. When a new version is published, the start screen offers **New version: tap to update** the next time you open the app or come back to it.
+
 ## Development
 
 Requires Node.js 24 or later and [uv](https://docs.astral.sh/uv/).
