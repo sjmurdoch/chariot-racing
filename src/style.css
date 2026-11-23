@@ -32,7 +32,8 @@ html {
 }
 
 html:has(#start:not([hidden])),
-html:has(#finish:not([hidden])) {
+html:has(#finish:not([hidden])),
+html:has(#pause:not([hidden])) {
   background: #705633;
 }
 
@@ -134,7 +135,8 @@ html.installed #rotate {
 }
 
 #start .action,
-#finish .action {
+#finish .action,
+#pause .action {
   padding: 8px 32px;
   border: 2px solid #e8c766;
   border-radius: 999px;
@@ -439,7 +441,8 @@ html.installed #rotate {
   margin-top: 8px;
 }
 
-#finish .secondary {
+#finish .secondary,
+#pause .secondary {
   padding: 8px 20px;
   border: 2px solid rgb(255 248 234 / 50%);
   border-radius: 999px;
@@ -626,4 +629,72 @@ html.installed #rotate {
       opacity: 0;
     }
   }
+}
+
+/* Two bars, top left, clear of the notch: big enough to tap mid-race. */
+#pause-button {
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top));
+  left: max(8px, env(safe-area-inset-left));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(40 24 10 / 45%);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#pause-button[hidden] {
+  display: none;
+}
+
+#pause-button span {
+  width: 5px;
+  height: 18px;
+  border-radius: 2px;
+  background: #fff8ea;
+}
+
+#pause {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  color: #fff8ea;
+  background: rgb(40 24 10 / 60%);
+  font: 18px/1.4 Georgia, 'Times New Roman', serif;
+  text-align: center;
+}
+
+#pause[hidden] {
+  display: none;
+}
+
+#pause .title {
+  font-size: clamp(26px, 9vh, 56px);
+  font-style: italic;
+  letter-spacing: 0.12em;
+  text-shadow: 0 2px 8px rgb(0 0 0 / 50%);
+}
+
+#pause .detail {
+  opacity: 0.85;
+}
+
+#pause .buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
 }

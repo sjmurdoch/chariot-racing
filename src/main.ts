@@ -78,6 +78,7 @@ declare global {
       lapsCounted: number;
       sound: string;
       announced: string;
+      pausedByPlayer: boolean;
       lastResult: { place: number; time: number; isBest: boolean } | null;
       /** Wreckage on the track; see sim/wreckage.ts. */
       wrecks: Wreck[];
@@ -251,6 +252,8 @@ const hooks = {
   wrecks,
   /** Laps counted off by the eggs and dolphins on the spina (the leader's). */
   lapsCounted: -1,
+  /** True while the player has paused the race. */
+  pausedByPlayer: false,
   /** The last Latin announcement shown, for tests. */
   announced: '',
   /** The state of the sound: off until the first tap, then running. */
@@ -515,9 +518,57 @@ document.querySelector('#again')!.addEventListener('click', raceAgain);
 function backToMenu(): void {
   resetField();
   finish.hidden = true;
+  setPaused(false);
   starting = false;
   startScreen.hidden = false;
 }
+
+const pauseScreen = document.querySelector<HTMLElement>('#pause')!;
+const pauseButton = document.querySelector<HTMLButtonElement>('#pause-button')!;
+/** Whether the player has paused the race (as opposed to the rotate prompt). */
+let pausedByPlayer = false;
+
+/** Whether the race is held still, by the player or the rotate prompt. */
+const halted = () => pausedByPlayer || hooks.paused;
+
+/** Whether there is a race going on that could be paused. */
+const pausable = () => phase !== 'menu' && finish.hidden === true;
+
+function setPaused(paused: boolean): void {
+  pausedByPlayer = paused && pausable();
+  hooks.pausedByPlayer = pausedByPlayer;
+  pauseScreen.hidden = !pausedByPlayer;
+}
+
+function pause(): void {
+  if (pausable()) setPaused(true);
+}
+
+function resume(): void {
+  setPaused(false);
+  // The player may be holding the phone differently after a break.
+  if (tilt.status === 'granted') tilt.calibrate();
+}
+
+/** Abandons the race and starts it again from the starting gates. */
+function restart(): void {
+  setPaused(false);
+  raceAgain();
+}
+
+pauseButton.addEventListener('click', pause);
+document.querySelector('#resume')!.addEventListener('click', resume);
+document.querySelector('#restart')!.addEventListener('click', restart);
+document.querySelector('#pause-menu')!.addEventListener('click', backToMenu);
+window.addEventListener('keydown', (event) => {
+  if (event.code !== 'Escape' && event.code !== 'KeyP') return;
+  if (pausedByPlayer) resume();
+  else pause();
+});
+// Leaving the app (switching away, locking the phone) pauses the race.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') pause();
+});
 document.querySelector('#menu')!.addEventListener('click', backToMenu);
 window.addEventListener('keydown', (event) => {
   if (!finish.hidden && (event.code === 'Enter' || event.code === 'Space')) {
@@ -595,7 +646,7 @@ stage.renderer.setAnimationLoop((now) => {
     config.steering.ramp_down,
   );
   hooks.input = digital ? { steer: rampedSteer, source: raw.source } : raw;
-  if (phase !== 'menu' && !hooks.paused) {
+  if (phase !== 'menu' && !halted()) {
     sincePhase += clock.step * steps;
     if (phase === 'gates' && sincePhase >= config.race.gate_seconds) dropMappa();
   }
@@ -604,7 +655,7 @@ stage.renderer.setAnimationLoop((now) => {
     // Once the field is well clear, the gates are no longer needed.
     if (sincePhase > 8) gates.group.visible = false;
   }
-  if (phase === 'racing' && !hooks.paused) {
+  if (phase === 'racing' && !halted()) {
     for (let i = 0; i < steps; i++) {
       const racing = current[0]!.race.phase === 'racing';
       previous = current;
@@ -632,7 +683,8 @@ stage.renderer.setAnimationLoop((now) => {
 
   hooks.state = interpolateChariot(previous[0]!.chariot, player, clock.alpha);
   const frameSeconds = Math.min(elapsed, 0.1);
-  const running = phase === 'racing' && !hooks.paused;
+  const running = phase === 'racing' && !halted();
+  pauseButton.hidden = !pausable() || pausedByPlayer;
   sound.update(
     running ? hooks.state.speed : 0,
     chariot.cruiseSpeed,
@@ -642,7 +694,7 @@ stage.renderer.setAnimationLoop((now) => {
   hooks.sound = sound.state;
   for (let i = 0; i < current.length; i++) {
     const shown = i === 0 ? hooks.state : interpolateChariot(previous[i]!.chariot, current[i]!.chariot, clock.alpha);
-    gaits[i] = advanceGait(gaits[i]!, hooks.paused ? 0 : shown.speed, frameSeconds);
+    gaits[i] = advanceGait(gaits[i]!, halted() ? 0 : shown.speed, frameSeconds);
     models!.place(i, shown, gaits[i]!, i === 0);
   }
   updateMarkers();
