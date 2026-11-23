@@ -13,6 +13,7 @@ import { createTiltSteer, type TiltSteer } from './input/tilt';
 import { createStage } from './scene';
 import * as THREE from 'three';
 import { buildChariots, type ChariotModels } from './render/chariots';
+import { advanceGait, type Gait } from './render/gait';
 import { buildGates } from './render/gates';
 import { buildLapCounters } from './render/lap-counters';
 import { buildWreckage } from './render/wreckage';
@@ -178,6 +179,8 @@ let previous: Racer[] = [];
 let current: Racer[] = [];
 let wrecks: Wreck[] = [];
 let models: ChariotModels | undefined;
+/** Each team's place in its galloping stride. */
+let gaits: Gait[] = [];
 let markers: HTMLElement[] = [];
 
 /** Builds the rivals' models and edge markers for the current field. */
@@ -192,8 +195,9 @@ function buildFieldView(): void {
     });
   }
   models = buildChariots(stage.track, current.map((r) => factionHex(r.faction)));
-  models.hide(0); // The player's own chariot is behind the camera.
-  for (let i = 1; i < current.length; i++) models.place(i, current[i]!.chariot);
+  gaits = current.map(() => ({ phase: 0, strength: 0 }));
+  // The player's own chariot is drawn as its horses, ahead of the camera.
+  current.forEach((r, i) => models!.place(i, r.chariot, gaits[i]!, i === 0));
   stage.scene.add(models.group);
 
   // A marker at the screen edge for each rival beside or behind the player.
@@ -583,8 +587,11 @@ stage.renderer.setAnimationLoop((now) => {
   }
 
   hooks.state = interpolateChariot(previous[0]!.chariot, player, clock.alpha);
-  for (let i = 1; i < current.length; i++) {
-    models!.place(i, interpolateChariot(previous[i]!.chariot, current[i]!.chariot, clock.alpha));
+  const frameSeconds = Math.min(elapsed, 0.1);
+  for (let i = 0; i < current.length; i++) {
+    const shown = i === 0 ? hooks.state : interpolateChariot(previous[i]!.chariot, current[i]!.chariot, clock.alpha);
+    gaits[i] = advanceGait(gaits[i]!, hooks.paused ? 0 : shown.speed, frameSeconds);
+    models!.place(i, shown, gaits[i]!, i === 0);
   }
   updateMarkers();
   if (!finish.hidden) updateStandings();

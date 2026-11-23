@@ -99,8 +99,9 @@ deadzone = 2
 invert = false
 
 [camera]
-# Driver's eye height above the sand, in metres.
-height = 2.1
+# Driver's eye height above the sand, in metres: a charioteer standing in
+# the car, raised a little so the team of horses doesn't hide the track.
+height = 2.6
 # Vertical field of view, in degrees.
 fov = 70
 # How far ahead along the lane the driver looks, in metres.
