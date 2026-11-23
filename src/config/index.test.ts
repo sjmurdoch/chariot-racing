@@ -25,6 +25,7 @@ describe('game.toml defaults', () => {
       tilt: { full_lock: num, deadzone: num, invert: bool },
       camera: { height: num, fov: num, lookahead: num },
       display: { fullscreen: bool },
+      audio: { enabled: bool, volume: num },
       render: { max_pixel_ratio: num, antialias: bool },
       debug: { show_fps: bool, overlay: bool, start_progress: num, wreck_at: num },
     });

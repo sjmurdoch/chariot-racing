@@ -535,3 +535,25 @@ html.installed #rotate {
     opacity: 0;
   }
 }
+
+#start .start-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#start .toggle {
+  min-height: 36px;
+  padding: 4px 14px;
+  border: 2px solid rgb(255 248 234 / 35%);
+  border-radius: 999px;
+  color: #fff8ea;
+  background: rgb(40 24 10 / 45%);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+#start .toggle[aria-pressed='false'] {
+  opacity: 0.7;
+}

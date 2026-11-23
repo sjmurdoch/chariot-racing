@@ -12,6 +12,7 @@ import {
 import { createTiltSteer, type TiltSteer } from './input/tilt';
 import { createStage } from './scene';
 import * as THREE from 'three';
+import { createSound } from './audio/sound';
 import { buildChariots, type ChariotModels } from './render/chariots';
 import { advanceGait, type Gait } from './render/gait';
 import { buildGates } from './render/gates';
@@ -39,7 +40,7 @@ import {
   startStagger,
   type RaceState,
 } from './sim/race';
-import { advance } from './sim/track';
+import { advance, curvature } from './sim/track';
 import { separation } from './sim/pack';
 import { createBrain } from './sim/rival';
 import type { Wreck } from './sim/wreckage';
@@ -75,6 +76,7 @@ declare global {
       /** Laps, timing and finish; see sim/race.ts. */
       race: RaceState;
       lapsCounted: number;
+      sound: string;
       lastResult: { place: number; time: number; isBest: boolean } | null;
       /** Wreckage on the track; see sim/wreckage.ts. */
       wrecks: Wreck[];
@@ -122,13 +124,15 @@ if (isDifficulty(config.rivals.difficulty)) {
   console.warn('Unknown difficulty "%s" in rivals.difficulty; using normal', config.rivals.difficulty);
 }
 let choices: Choices = initialChoices(
-  { faction: defaultFaction, difficulty: defaultDifficulty },
+  { faction: defaultFaction, difficulty: defaultDifficulty, sound: config.audio.enabled },
   {
     ...(explicitly('race.faction') ? { faction: defaultFaction } : {}),
     ...(explicitly('rivals.difficulty') ? { difficulty: defaultDifficulty } : {}),
+    ...(explicitly('audio.enabled') ? { sound: config.audio.enabled } : {}),
   },
   storage,
 );
+const sound = createSound(config.audio.volume, choices.sound);
 
 /**
  * A fresh field in the starting gates, from a standstill: the player first,
@@ -246,6 +250,8 @@ const hooks = {
   wrecks,
   /** Laps counted off by the eggs and dolphins on the spina (the leader's). */
   lapsCounted: -1,
+  /** The state of the sound: off until the first tap, then running. */
+  sound: 'off',
   /** The player's last finish: place, time and whether it was a best. */
   lastResult: null as { place: number; time: number; isBest: boolean } | null,
   field: [] as { faction: string; progress: number; lane: number; place: number; crashes: number }[],
@@ -290,6 +296,7 @@ function dropMappa(): void {
   hooks.started = true;
   sincePhase = 0;
   mappa.classList.add('dropped');
+  sound.roar();
 }
 
 stage.resize();
@@ -305,7 +312,11 @@ const startScreen = document.querySelector<HTMLElement>('#start')!;
 const factionButtons = [...startScreen.querySelectorAll<HTMLButtonElement>('[data-faction]')];
 const difficultyButtons = [...startScreen.querySelectorAll<HTMLButtonElement>('[data-difficulty]')];
 
+const soundToggle = document.querySelector<HTMLButtonElement>('#sound-toggle')!;
+
 function showChoices(): void {
+  soundToggle.ariaPressed = String(choices.sound);
+  soundToggle.textContent = choices.sound ? 'Sound on' : 'Sound off';
   for (const b of factionButtons) b.ariaChecked = String(b.dataset.faction === choices.faction);
   for (const b of difficultyButtons) {
     b.ariaChecked = String(b.dataset.difficulty === choices.difficulty);
@@ -313,12 +324,15 @@ function showChoices(): void {
 }
 
 function choose(next: Partial<Choices>): void {
+  const raceChanged = next.faction !== undefined || next.difficulty !== undefined;
   choices = { ...choices, ...next };
   hooks.choices = choices;
   saveChoices(choices, storage);
+  sound.setEnabled(choices.sound);
   showChoices();
-  resetField();
+  if (raceChanged) resetField();
 }
+soundToggle.addEventListener('click', () => choose({ sound: !choices.sound }));
 for (const b of factionButtons) {
   b.addEventListener('click', () => {
     if (b.dataset.faction && isFactionId(b.dataset.faction)) choose({ faction: b.dataset.faction });
@@ -347,6 +361,7 @@ function start(): void {
   // Ask for motion access first and synchronously, inside the tap: iOS only
   // prompts in response to a user gesture.
   const tiltReady = tilt.enable();
+  sound.unlock();
   if (config.display.fullscreen) enterFullscreenLandscape();
   void tiltReady.then((status) => {
     console.debug('tilt steering %s', status);
@@ -405,6 +420,7 @@ function showFinish(): void {
   const time = hooks.race.finishTime ?? 0;
   // A palm branch for the victor, as given to winning charioteers.
   palm.toggleAttribute('hidden', !won);
+  sound.cheer(won);
   document.querySelector('#finish .title')!.textContent = won ? 'Victor!' : 'Finis';
   document.querySelector('#finish-time')!.textContent = formatTime(time);
   const placing = current.length > 1 ? `${ordinal(place)} of ${current.length} · ` : '';
@@ -493,6 +509,7 @@ function showCrash(): void {
   void crashFlash.offsetWidth; // Restart the animation.
   crashFlash.classList.add('flash');
   navigator.vibrate?.(150);
+  sound.crash();
 }
 
 function describeTilt(): string {
@@ -588,6 +605,14 @@ stage.renderer.setAnimationLoop((now) => {
 
   hooks.state = interpolateChariot(previous[0]!.chariot, player, clock.alpha);
   const frameSeconds = Math.min(elapsed, 0.1);
+  const running = phase === 'racing' && !hooks.paused;
+  sound.update(
+    running ? hooks.state.speed : 0,
+    chariot.cruiseSpeed,
+    running && curvature(stage.track, hooks.state.progress, hooks.state.lane) > 0,
+    frameSeconds,
+  );
+  hooks.sound = sound.state;
   for (let i = 0; i < current.length; i++) {
     const shown = i === 0 ? hooks.state : interpolateChariot(previous[i]!.chariot, current[i]!.chariot, clock.alpha);
     gaits[i] = advanceGait(gaits[i]!, hooks.paused ? 0 : shown.speed, frameSeconds);

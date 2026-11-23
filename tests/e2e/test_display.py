@@ -205,7 +205,7 @@ def test_home_screen_app_screens_are_centred(new_context: Callable[..., BrowserC
     wait_until_rendering(page)
     assert page.locator("#start").bounding_box()["width"] == LANDSCAPE["width"]
     assert centre_offset(page, "#start", "#start .title") < 1
-    assert centre_offset(page, "#start", "#race-button") < 1
+    assert centre_offset(page, "#start", "#start .start-buttons") < 1
 
     page.set_viewport_size(PORTRAIT)
     expect(page.locator("#rotate")).to_be_visible()

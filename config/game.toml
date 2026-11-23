@@ -113,6 +113,14 @@ lookahead = 14
 # the Home Screen for full screen, and can't be locked to landscape.
 fullscreen = true
 
+[audio]
+# Sound, made in the browser: hooves, wheels and the crowd. The player can
+# turn it off on the start screen, which is remembered and wins over this,
+# unless it is set in the URL.
+enabled = true
+# Overall volume, from 0 to 1.
+volume = 0.6
+
 [render]
 # Upper limit on the device pixel ratio, to protect frame rate on phones.
 max_pixel_ratio = 2

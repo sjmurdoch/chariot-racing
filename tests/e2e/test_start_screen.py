@@ -37,6 +37,7 @@ def test_choosing_a_faction_changes_the_field_and_is_remembered(page: Page) -> N
     assert page.evaluate("() => window.chariot.choices") == {
         "faction": "veneta",
         "difficulty": "hard",
+        "sound": True,
     }
 
 

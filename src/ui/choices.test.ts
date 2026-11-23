@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DIFFICULTIES, initialChoices, saveChoices, type ChoiceStorage, type Choices } from './choices';
 
-const defaults: Choices = { faction: 'prasina', difficulty: 'normal' };
+const defaults: Choices = { faction: 'prasina', difficulty: 'normal', sound: true };
 
 function memoryStorage(initial: Record<string, string> = {}): ChoiceStorage & { data: Record<string, string> } {
   const data = { ...initial };
@@ -29,22 +29,31 @@ describe('initialChoices', () => {
 
   it('remembers what the player chose last time', () => {
     const storage = memoryStorage();
-    saveChoices({ faction: 'veneta', difficulty: 'hard' }, storage);
-    expect(initialChoices(defaults, {}, storage)).toEqual({ faction: 'veneta', difficulty: 'hard' });
+    saveChoices({ faction: 'veneta', difficulty: 'hard', sound: false }, storage);
+    expect(initialChoices(defaults, {}, storage)).toEqual({
+      faction: 'veneta',
+      difficulty: 'hard',
+      sound: false,
+    });
   });
 
   it('lets explicit settings win over remembered ones', () => {
     const storage = memoryStorage();
-    saveChoices({ faction: 'veneta', difficulty: 'hard' }, storage);
-    expect(initialChoices(defaults, { faction: 'albata' }, storage)).toEqual({
+    saveChoices({ faction: 'veneta', difficulty: 'hard', sound: false }, storage);
+    expect(initialChoices(defaults, { faction: 'albata', sound: true }, storage)).toEqual({
       faction: 'albata',
       difficulty: 'hard',
+      sound: true,
     });
   });
 
   it('ignores remembered values that are not valid', () => {
     const storage = memoryStorage({
-      'circus-maximus.choices': JSON.stringify({ faction: 'purpurea', difficulty: 'insane' }),
+      'circus-maximus.choices': JSON.stringify({
+        faction: 'purpurea',
+        difficulty: 'insane',
+        sound: 'loud',
+      }),
     });
     expect(initialChoices(defaults, {}, storage)).toEqual(defaults);
   });

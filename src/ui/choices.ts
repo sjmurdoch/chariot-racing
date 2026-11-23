@@ -1,5 +1,6 @@
-// The player's choices on the start screen: their faction and how hard the
-// rivals are. Remembered in the browser for next time, where it allows.
+// The player's choices on the start screen: their faction, how hard the
+// rivals are, and whether there is sound. Remembered in the browser for next
+// time, where it allows.
 
 import { isFactionId, type FactionId } from '../sim/factions';
 
@@ -19,6 +20,7 @@ export function isDifficulty(value: string): value is Difficulty {
 export interface Choices {
   faction: FactionId;
   difficulty: Difficulty;
+  sound: boolean;
 }
 
 const STORAGE_KEY = 'circus-maximus.choices';
@@ -48,13 +50,14 @@ export function initialChoices(
   try {
     const raw = storage?.getItem(STORAGE_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as { faction?: unknown; difficulty?: unknown };
+      const parsed = JSON.parse(raw) as { faction?: unknown; difficulty?: unknown; sound?: unknown };
       if (typeof parsed.faction === 'string' && isFactionId(parsed.faction)) {
         saved.faction = parsed.faction;
       }
       if (typeof parsed.difficulty === 'string' && isDifficulty(parsed.difficulty)) {
         saved.difficulty = parsed.difficulty;
       }
+      if (typeof parsed.sound === 'boolean') saved.sound = parsed.sound;
     }
   } catch {
     saved = {};
