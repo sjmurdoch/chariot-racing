@@ -43,13 +43,19 @@ def test_pause_holds_the_race_still_and_resume_carries_on(page: Page) -> None:
 
 
 def test_restart_goes_back_to_the_starting_gates(page: Page) -> None:
-    race_under_way(page)
+    # A real wait in the gates, so the restarted race is still waiting there
+    # when checked, even on a slow CI runner.
+    page.goto("./?display.fullscreen=0&race.gate_seconds=3")
+    start_race(page)
+    page.wait_for_function("() => window.chariot.race.elapsed > 1", timeout=15000)
     page.locator("#pause-button").click()
     page.locator("#restart").click()
     expect(page.locator("#pause")).to_be_hidden()
-    race = page.evaluate("() => window.chariot.race")
+    # Read the phase and race together, so they describe the same moment.
+    phase, race = page.evaluate("() => [window.chariot.phase, window.chariot.race]")
+    assert phase == "gates"
     assert race["lapsDone"] == 0
-    assert race["elapsed"] < 0.5
+    assert race["elapsed"] == 0
     page.wait_for_function("() => window.chariot.phase === 'racing'")
 
 
