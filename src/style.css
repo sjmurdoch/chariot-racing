@@ -557,3 +557,73 @@ html.installed #rotate {
 #start .toggle[aria-pressed='false'] {
   opacity: 0.7;
 }
+
+#start .subtitle {
+  margin-top: -6px;
+  font-style: italic;
+  letter-spacing: 0.2em;
+  opacity: 0.85;
+}
+
+/* A brief announcement in Latin, with the English beneath. */
+#banner {
+  position: fixed;
+  top: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  color: #fff8ea;
+  text-align: center;
+  text-shadow: 0 2px 10px rgb(0 0 0 / 70%);
+  animation: banner 1.8s ease-out forwards;
+}
+
+#banner[hidden] {
+  display: none;
+}
+
+#banner .latin {
+  font: italic clamp(28px, 11vh, 64px) / 1.1 Georgia, 'Times New Roman', serif;
+  letter-spacing: 0.06em;
+}
+
+#banner .english {
+  font: 15px/1.4 Georgia, 'Times New Roman', serif;
+  opacity: 0.85;
+}
+
+@keyframes banner {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.9);
+  }
+  12% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #banner {
+    animation-name: banner-fade;
+  }
+
+  @keyframes banner-fade {
+    0%,
+    75% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+}

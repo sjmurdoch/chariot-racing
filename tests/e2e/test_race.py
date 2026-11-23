@@ -60,3 +60,10 @@ def test_eggs_and_dolphins_count_the_leaders_laps(page: Page) -> None:
     start_race(page)
     assert page.evaluate("() => window.chariot.lapsCounted") == 0
     page.wait_for_function("() => window.chariot.lapsCounted === 1")
+
+
+def test_last_lap_is_announced(page: Page) -> None:
+    page.goto("./?race.laps=2&rivals.count=0&debug.start_progress=3.9&display.fullscreen=0")
+    start_race(page)
+    page.wait_for_function("() => window.chariot.announced === 'Ultimum spatium'")
+    expect(page.locator("#banner .english")).to_have_text("Last lap")

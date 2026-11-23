@@ -77,6 +77,7 @@ declare global {
       race: RaceState;
       lapsCounted: number;
       sound: string;
+      announced: string;
       lastResult: { place: number; time: number; isBest: boolean } | null;
       /** Wreckage on the track; see sim/wreckage.ts. */
       wrecks: Wreck[];
@@ -250,6 +251,8 @@ const hooks = {
   wrecks,
   /** Laps counted off by the eggs and dolphins on the spina (the leader's). */
   lapsCounted: -1,
+  /** The last Latin announcement shown, for tests. */
+  announced: '',
   /** The state of the sound: off until the first tap, then running. */
   sound: 'off',
   /** The player's last finish: place, time and whether it was a best. */
@@ -269,6 +272,7 @@ function resetField(): void {
   hooks.state = current[0]!.chariot;
   hooks.race = current[0]!.race;
   shownCrashes = 0;
+  lastLapAnnounced = false;
   buildFieldView();
   gates.setStalls(current.map((r) => r.chariot));
   phase = 'menu';
@@ -290,6 +294,23 @@ function enterGates(): void {
   hud.hidden = false;
 }
 
+const banner = document.querySelector<HTMLElement>('#banner')!;
+let bannerTimer: number | undefined;
+
+/** Announces something briefly in Latin, with the English beneath. */
+function announce(latin: string, english: string): void {
+  banner.querySelector('.latin')!.textContent = latin;
+  banner.querySelector('.english')!.textContent = english;
+  banner.hidden = true;
+  void banner.offsetWidth; // Restart the animation.
+  banner.hidden = false;
+  hooks.announced = latin;
+  window.clearTimeout(bannerTimer);
+  bannerTimer = window.setTimeout(() => {
+    banner.hidden = true;
+  }, 1800);
+}
+
 function dropMappa(): void {
   phase = 'racing';
   hooks.phase = phase;
@@ -297,6 +318,7 @@ function dropMappa(): void {
   sincePhase = 0;
   mappa.classList.add('dropped');
   sound.roar();
+  announce('Ite!', 'Go!');
 }
 
 stage.resize();
@@ -394,6 +416,7 @@ const stats = createFrameStats();
 let lastTime: number | undefined;
 let rampedSteer = 0;
 let shownCrashes = 0;
+let lastLapAnnounced = false;
 
 const crashFlash = document.querySelector<HTMLElement>('#crash-flash')!;
 const hud = document.querySelector<HTMLElement>('#hud')!;
@@ -591,6 +614,10 @@ stage.renderer.setAnimationLoop((now) => {
       hooks.wrecks = wrecks;
       hooks.race = current[0]!.race;
       if (racing && hooks.race.phase === 'finished') showFinish();
+      if (racing && laps > 1 && hooks.race.lapsDone === laps - 1 && !lastLapAnnounced) {
+        lastLapAnnounced = true;
+        announce('Ultimum spatium', 'Last lap');
+      }
     }
   } else {
     // Hold still: with nothing advancing, don't blend between old steps.

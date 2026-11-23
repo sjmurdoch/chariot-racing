@@ -54,3 +54,12 @@ def test_outer_chariots_start_further_forward(page: Page) -> None:
     progress = [r["progress"] for r in by_lane]
     assert progress == sorted(progress)
     assert progress[0] < progress[-1]
+
+
+def test_the_start_is_announced(page: Page) -> None:
+    page.goto(WITH_GATES)
+    expect(page.locator("#start .subtitle")).to_have_text("Ludi Circenses")
+    start_race(page)
+    page.wait_for_function("() => window.chariot.phase === 'racing'")
+    expect(page.locator("#banner .latin")).to_have_text("Ite!")
+    expect(page.locator("#banner .english")).to_have_text("Go!")
