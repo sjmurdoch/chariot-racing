@@ -27,6 +27,7 @@ export interface GameConfig extends ConfigTree {
   camera: { height: number; fov: number; lookahead: number };
   display: { fullscreen: boolean };
   audio: { enabled: boolean; volume: number };
+  pwa: { offline: boolean };
   render: { max_pixel_ratio: number; antialias: boolean };
   debug: { show_fps: boolean; overlay: boolean; start_progress: number; wreck_at: number };
 }

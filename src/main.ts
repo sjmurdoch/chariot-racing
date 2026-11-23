@@ -55,6 +55,7 @@ import {
 } from './ui/display';
 import { createFrameStats } from './ui/frame-stats';
 import { recordTime } from './ui/records';
+import { setUpUpdates, type OfflineStatus } from './ui/updates';
 import { indicatorFor } from './ui/indicators';
 import { createOverlay, describeGpu, type OverlaySnapshot } from './ui/overlay';
 
@@ -79,6 +80,7 @@ declare global {
       sound: string;
       announced: string;
       pausedByPlayer: boolean;
+      offline: OfflineStatus;
       lastResult: { place: number; time: number; isBest: boolean } | null;
       /** Wreckage on the track; see sim/wreckage.ts. */
       wrecks: Wreck[];
@@ -252,6 +254,8 @@ const hooks = {
   wrecks,
   /** Laps counted off by the eggs and dolphins on the spina (the leader's). */
   lapsCounted: -1,
+  /** Offline play: off, installing, ready, or update (a new version is waiting). */
+  offline: 'off' as OfflineStatus,
   /** True while the player has paused the race. */
   pausedByPlayer: false,
   /** The last Latin announcement shown, for tests. */
@@ -338,6 +342,14 @@ const factionButtons = [...startScreen.querySelectorAll<HTMLButtonElement>('[dat
 const difficultyButtons = [...startScreen.querySelectorAll<HTMLButtonElement>('[data-difficulty]')];
 
 const soundToggle = document.querySelector<HTMLButtonElement>('#sound-toggle')!;
+
+// Offline play, and new versions offered on the start screen (never mid-race).
+const updateButton = document.querySelector<HTMLButtonElement>('#update')!;
+const updates = setUpUpdates(config.pwa.offline && import.meta.env.PROD, (status) => {
+  hooks.offline = status;
+  updateButton.hidden = status !== 'update';
+});
+updateButton.addEventListener('click', () => updates.apply());
 
 function showChoices(): void {
   soundToggle.ariaPressed = String(choices.sound);
@@ -521,6 +533,7 @@ function backToMenu(): void {
   setPaused(false);
   starting = false;
   startScreen.hidden = false;
+  updates.check();
 }
 
 const pauseScreen = document.querySelector<HTMLElement>('#pause')!;
@@ -618,6 +631,7 @@ function snapshot(): OverlaySnapshot {
       ['screen', `${screen.width}×${screen.height}`],
       ['insets', safeAreaInsets().join(' ')],
       ['mode', displayMode()],
+      ['offline', hooks.offline],
     ],
     overrides,
   };

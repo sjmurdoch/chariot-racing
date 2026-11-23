@@ -121,6 +121,12 @@ enabled = true
 # Overall volume, from 0 to 1.
 volume = 0.6
 
+[pwa]
+# Keep a copy of the game for offline play (as a Home Screen app), with a
+# prompt on the start screen when a new version is ready. Only in production
+# builds; the development server always serves the latest code.
+offline = true
+
 [render]
 # Upper limit on the device pixel ratio, to protect frame rate on phones.
 max_pixel_ratio = 2

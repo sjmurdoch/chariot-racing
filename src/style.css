@@ -698,3 +698,12 @@ html.installed #rotate {
   gap: 10px;
   margin-top: 8px;
 }
+
+#start #update {
+  border-color: #e8c766;
+  color: #e8c766;
+}
+
+#start #update[hidden] {
+  display: none;
+}
