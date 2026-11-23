@@ -53,14 +53,11 @@ Each milestone is a small, playable, tested increment.
 6. ✅ **Race flow:** start screen (faction and difficulty, remembered), staggered carceres with the mappa drop, egg and dolphin lap counters on the spina, results with full standings and the palm branch for a win, and local best times per race length and difficulty.
 7. ✅ **Presentation:** galloping horses for every team, with the player's own four visible ahead; three tiers of stands with a painted crowd; Web Audio sound (hooves, wheels, a crowd that swells in the turns, roars at the start, gasps at crashes and cheers the finish), switchable on the start screen; Latin touches (*Ludi Circenses*, *Ite!* at the start, *Ultimum spatium* on the last lap, *Naufragium!*, *Victor!*, *Finis*).
 8. ✅ **PWA and deploy:** GitHub Pages workflow; manifest (full screen, landscape) and icons; full screen and landscape lock where supported, and a rotate prompt in portrait; a generated service worker that keeps a copy of every built file for offline play, versioned by a hash of the build, checking for a new version on launch and on returning to the app, and offering "New version: tap to update" on the start screen (never mid-race).
-9. **History and polish:** sourced historical facts, an About screen, a performance pass on a real iPhone, tuning for fun.
+9. **History and polish:** done: historical details checked against sources (see the About screen and `src/content/facts.ts`); *Ite!* removed, since no spoken start command is recorded, in favour of a tuba blast with the mappa; a fact on the start and finish screens; an About screen with every fact and its source, and where the game departs from history. Still to do: a performance pass on a real iPhone, and tuning for fun from play.
 
 ## Open items
 
 - Name of the game.
 - Exact compressed track proportions, to be tuned during playtesting in milestone 4.
-- Sources for the historical facts, to be collected and checked in milestone 9.
 - Tilt steering is tested with simulated sensor events only. The direction depends on how iOS reports `window.orientation`, so check on a real iPhone in both landscape directions that turning the phone clockwise steers right; `tilt.invert` reverses it if not. Tune `tilt.full_lock` and `steering.response` on the device at the same time.
-- The starting gates are staggered (outer chariots start up to about 7 m further forward) on the understanding that the carceres stood on a curve so that no stall had an advantage; check this against sources in milestone 9.
-- Check the Latin used in the game: *spatium* for a lap, *Ite!* for the start, *Ludi Circenses*, *naufragium* for a crash, *victor*, *finis*.
-- Scenery dimensions are placeholders to check against sources in milestone 9: obelisk height (24 m), meta cone height (6 m), spina width (12 m, chosen for gameplay).
+- Scenery: the obelisk (24 m) matches the real one (23.7 m); the metae as three gilded cones match Platner's description, though their 6 m height is a guess; the spina width (12 m) and turn radius are chosen for play.
