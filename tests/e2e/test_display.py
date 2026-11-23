@@ -183,3 +183,31 @@ def test_home_screen_app_fills_the_screen(new_context: Callable[..., BrowserCont
     assert box is not None
     assert box["height"] == expected
     expect(page.locator("#install-hint")).to_be_hidden()
+
+
+def centre_offset(page: Page, layer: str, content: str) -> float:
+    """How far `content` sits from the centre of the screen, in CSS pixels."""
+    return page.evaluate(
+        """([layer, content]) => {
+            const box = document.querySelector(content).getBoundingClientRect();
+            return Math.abs(box.left + box.width / 2 - innerWidth / 2);
+        }""",
+        [layer, content],
+    )
+
+
+def test_home_screen_app_screens_are_centred(new_context: Callable[..., BrowserContext]) -> None:
+    # Full-width layers with padding must not spill past the screen's edge,
+    # which pushed their contents off-centre in the Home Screen app.
+    page = new_context(viewport=LANDSCAPE, has_touch=True).new_page()
+    page.add_init_script("Object.defineProperty(navigator, 'standalone', { value: true })")
+    page.goto("./")
+    wait_until_rendering(page)
+    assert page.locator("#start").bounding_box()["width"] == LANDSCAPE["width"]
+    assert centre_offset(page, "#start", "#start .title") < 1
+    assert centre_offset(page, "#start", "#race-button") < 1
+
+    page.set_viewport_size(PORTRAIT)
+    expect(page.locator("#rotate")).to_be_visible()
+    assert page.locator("#rotate").bounding_box()["width"] == PORTRAIT["width"]
+    assert centre_offset(page, "#rotate", "#rotate span:last-child") < 1

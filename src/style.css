@@ -1,3 +1,14 @@
+/*
+ * Padding counts inside an element's width. Without this, a full-width layer
+ * with safe-area padding (as in a Home Screen app) is wider than the screen,
+ * and its contents sit off-centre.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html,
 body {
   margin: 0;
