@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { trackSpec, type GameConfig } from './config';
 import { buildArena } from './render/arena';
+import { buildStands } from './render/stands';
 import type { ChariotState } from './sim/chariot';
 import { poseAt, travelDirection, type TrackSpec } from './sim/track';
 
@@ -37,6 +38,7 @@ export function createStage(canvas: HTMLCanvasElement, config: GameConfig): Stag
   sun.position.set(60, 120, 80);
   scene.add(sun);
   scene.add(buildArena(renderer, track));
+  scene.add(buildStands(renderer, track).group);
 
   const camera = new THREE.PerspectiveCamera(config.camera.fov, 1, 0.1, 1000);
   const eye = config.camera.height;

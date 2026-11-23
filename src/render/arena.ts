@@ -15,8 +15,8 @@ const COLOURS = {
 };
 
 const SPINA_HEIGHT = 1.6;
-const WALL_HEIGHT = 3.2;
-const WALL_THICKNESS = 2;
+export const WALL_HEIGHT = 3.2;
+export const WALL_THICKNESS = 2;
 const META_CONE_HEIGHT = 6;
 const META_CONE_RADIUS = 0.9;
 const OBELISK_HEIGHT = 24;
@@ -34,7 +34,7 @@ export function stadiumShape(halfLength: number, radius: number): THREE.Shape {
 }
 
 /** Extrudes a shape upwards from the ground plane. */
-function extrudeUp(shape: THREE.Shape, height: number, curveSegments = 24): THREE.BufferGeometry {
+export function extrudeUp(shape: THREE.Shape, height: number, curveSegments = 24): THREE.BufferGeometry {
   const geometry = new THREE.ExtrudeGeometry(shape, {
     depth: height,
     bevelEnabled: false,
@@ -45,7 +45,7 @@ function extrudeUp(shape: THREE.Shape, height: number, curveSegments = 24): THRE
 }
 
 /** A small deterministic pseudo-random generator (mulberry32). */
-function seededRandom(seed: number): () => number {
+export function seededRandom(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
     a = (a + 0x6d2b79f5) >>> 0;
@@ -149,7 +149,7 @@ function obelisk(): THREE.Group {
   return group;
 }
 
-function outerWallRadius(track: TrackSpec): number {
+export function outerWallRadius(track: TrackSpec): number {
   return track.innerRadius + track.width + 1;
 }
 
